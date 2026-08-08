@@ -1,0 +1,959 @@
+{
+  "Coverage and exclusions": [
+    {
+      "heading": "Providing covered services",
+      "printed_page": 3,
+      "pdf_page": 5,
+      "font_size": 14.0,
+      "y_position": 70.71,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Abortion",
+      "printed_page": 3,
+      "pdf_page": 5,
+      "font_size": 14.0,
+      "y_position": 591.07,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Acupuncture",
+      "printed_page": 4,
+      "pdf_page": 6,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Ambulance services",
+      "printed_page": 4,
+      "pdf_page": 6,
+      "font_size": 14.0,
+      "y_position": 148.26,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Applied behavior analysis",
+      "printed_page": 4,
+      "pdf_page": 6,
+      "font_size": 14.0,
+      "y_position": 439.86,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Autism spectrum disorder",
+      "printed_page": 4,
+      "pdf_page": 6,
+      "font_size": 14.0,
+      "y_position": 525.26,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Behavioral health",
+      "printed_page": 5,
+      "pdf_page": 7,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Clinical trials",
+      "printed_page": 6,
+      "pdf_page": 8,
+      "font_size": 14.0,
+      "y_position": 294.13,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Durable medical equipment (DME)",
+      "printed_page": 7,
+      "pdf_page": 9,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Emergency services",
+      "printed_page": 7,
+      "pdf_page": 9,
+      "font_size": 14.0,
+      "y_position": 521.93,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Gender affirming treatment",
+      "printed_page": 8,
+      "pdf_page": 10,
+      "font_size": 14.0,
+      "y_position": 170.28,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Habilitation therapy services",
+      "printed_page": 8,
+      "pdf_page": 10,
+      "font_size": 14.0,
+      "y_position": 324.65,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Hearing aids",
+      "printed_page": 9,
+      "pdf_page": 11,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Hearing exams",
+      "printed_page": 9,
+      "pdf_page": 11,
+      "font_size": 14.0,
+      "y_position": 339.76,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Home health care",
+      "printed_page": 9,
+      "pdf_page": 11,
+      "font_size": 14.0,
+      "y_position": 451.43,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Hospice care",
+      "printed_page": 10,
+      "pdf_page": 12,
+      "font_size": 14.0,
+      "y_position": 172.04,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Hospital care",
+      "printed_page": 11,
+      "pdf_page": 13,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Infertility services",
+      "printed_page": 11,
+      "pdf_page": 13,
+      "font_size": 14.0,
+      "y_position": 257.44,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Institutes of Quality",
+      "printed_page": 12,
+      "pdf_page": 14,
+      "font_size": 14.0,
+      "y_position": 200.06,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Institutes of Quality Bariatric",
+      "printed_page": 12,
+      "pdf_page": 14,
+      "font_size": 14.0,
+      "y_position": 338.0,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Jaw joint disorder treatment",
+      "printed_page": 12,
+      "pdf_page": 14,
+      "font_size": 14.0,
+      "y_position": 491.13,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Maternity and related newborn care",
+      "printed_page": 12,
+      "pdf_page": 14,
+      "font_size": 14.0,
+      "y_position": 617.4,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Obesity surgery and services",
+      "printed_page": 13,
+      "pdf_page": 15,
+      "font_size": 14.0,
+      "y_position": 130.58,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Oral and maxillofacial treatment (mouth, jaws and teeth)",
+      "printed_page": 13,
+      "pdf_page": 15,
+      "font_size": 14.0,
+      "y_position": 475.79,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Outpatient surgery",
+      "printed_page": 13,
+      "pdf_page": 15,
+      "font_size": 14.0,
+      "y_position": 574.62,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Physician services",
+      "printed_page": 14,
+      "pdf_page": 16,
+      "font_size": 14.0,
+      "y_position": 49.43,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Prescription drugs - outpatient",
+      "printed_page": 14,
+      "pdf_page": 16,
+      "font_size": 14.0,
+      "y_position": 315.9,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Preventive care",
+      "printed_page": 19,
+      "pdf_page": 21,
+      "font_size": 14.0,
+      "y_position": 159.19,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Prosthetic device",
+      "printed_page": 22,
+      "pdf_page": 24,
+      "font_size": 14.0,
+      "y_position": 146.99,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Reconstructive breast surgery and supplies",
+      "printed_page": 22,
+      "pdf_page": 24,
+      "font_size": 14.0,
+      "y_position": 436.15,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Reconstructive surgery and supplies",
+      "printed_page": 22,
+      "pdf_page": 24,
+      "font_size": 14.0,
+      "y_position": 561.24,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Short-term cardiac and pulmonary rehabilitation services",
+      "printed_page": 23,
+      "pdf_page": 25,
+      "font_size": 14.0,
+      "y_position": 186.1,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Short-term rehabilitation services",
+      "printed_page": 23,
+      "pdf_page": 25,
+      "font_size": 14.0,
+      "y_position": 353.34,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Skilled nursing facility",
+      "printed_page": 24,
+      "pdf_page": 26,
+      "font_size": 14.0,
+      "y_position": 432.16,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Specialty prescription drugs",
+      "printed_page": 24,
+      "pdf_page": 26,
+      "font_size": 14.0,
+      "y_position": 504.13,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Telemedicine",
+      "printed_page": 25,
+      "pdf_page": 27,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Tests, images and labs - outpatient",
+      "printed_page": 25,
+      "pdf_page": 27,
+      "font_size": 14.0,
+      "y_position": 229.41,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Therapies – chemotherapy, GCIT, infusion, radiation",
+      "printed_page": 25,
+      "pdf_page": 27,
+      "font_size": 14.0,
+      "y_position": 549.67,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Transplant services",
+      "printed_page": 27,
+      "pdf_page": 29,
+      "font_size": 14.0,
+      "y_position": 568.57,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Travel and Lodging",
+      "printed_page": 28,
+      "pdf_page": 30,
+      "font_size": 14.0,
+      "y_position": 404.53,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Urgent care services",
+      "printed_page": 29,
+      "pdf_page": 31,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Virtual primary care (VPC)",
+      "printed_page": 29,
+      "pdf_page": 31,
+      "font_size": 14.0,
+      "y_position": 160.52,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    },
+    {
+      "heading": "Walk-in clinic",
+      "printed_page": 29,
+      "pdf_page": 31,
+      "font_size": 14.0,
+      "y_position": 621.9,
+      "chapter_start_pdf_page": 5,
+      "chapter_end_pdf_page": 31
+    }
+  ],
+  "General plan exclusions": [
+    {
+      "heading": "Behavioral health treatment",
+      "printed_page": 30,
+      "pdf_page": 32,
+      "font_size": 14.0,
+      "y_position": 92.68,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Blood, blood plasma, synthetic blood, blood derivatives or substitutes",
+      "printed_page": 30,
+      "pdf_page": 32,
+      "font_size": 14.0,
+      "y_position": 216.51,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Cosmetic services and plastic surgery",
+      "printed_page": 30,
+      "pdf_page": 32,
+      "font_size": 14.0,
+      "y_position": 258.01,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Cost share waived",
+      "printed_page": 30,
+      "pdf_page": 32,
+      "font_size": 14.0,
+      "y_position": 312.95,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Court-ordered services and supplies",
+      "printed_page": 30,
+      "pdf_page": 32,
+      "font_size": 14.0,
+      "y_position": 367.88,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Custodial care",
+      "printed_page": 30,
+      "pdf_page": 32,
+      "font_size": 14.0,
+      "y_position": 422.81,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Dental services",
+      "printed_page": 31,
+      "pdf_page": 33,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Educational services",
+      "printed_page": 31,
+      "pdf_page": 33,
+      "font_size": 14.0,
+      "y_position": 120.23,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Examinations",
+      "printed_page": 31,
+      "pdf_page": 33,
+      "font_size": 14.0,
+      "y_position": 286.2,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Experimental, investigational, or unproven",
+      "printed_page": 31,
+      "pdf_page": 33,
+      "font_size": 14.0,
+      "y_position": 399.63,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Foot care",
+      "printed_page": 31,
+      "pdf_page": 33,
+      "font_size": 14.0,
+      "y_position": 457.0,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Foot orthotic devices",
+      "printed_page": 31,
+      "pdf_page": 33,
+      "font_size": 14.0,
+      "y_position": 583.85,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Gene-based, cellular and other innovative therapies (GCIT)",
+      "printed_page": 32,
+      "pdf_page": 34,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Growth/height care",
+      "printed_page": 32,
+      "pdf_page": 34,
+      "font_size": 14.0,
+      "y_position": 204.9,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Maintenance care",
+      "printed_page": 32,
+      "pdf_page": 34,
+      "font_size": 14.0,
+      "y_position": 263.44,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Medical supplies – outpatient disposable",
+      "printed_page": 32,
+      "pdf_page": 34,
+      "font_size": 14.0,
+      "y_position": 320.81,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Missed appointments",
+      "printed_page": 32,
+      "pdf_page": 34,
+      "font_size": 14.0,
+      "y_position": 518.9,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Nutritional support",
+      "printed_page": 32,
+      "pdf_page": 34,
+      "font_size": 14.0,
+      "y_position": 562.85,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Other non-covered services",
+      "printed_page": 32,
+      "pdf_page": 34,
+      "font_size": 14.0,
+      "y_position": 690.87,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Other primary payer",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 49.43,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Personal care, comfort or convenience items",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 93.38,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Prescription or non-prescription drugs and medicines – outpatient",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 137.32,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Routine exams and preventive services and supplies",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 195.87,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Services not permitted by law",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 253.24,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Services provided by a family member",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 350.9,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Services, supplies and drugs received outside of the United States",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 408.27,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Sexual dysfunction and enhancement",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 465.65,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Strength and performance",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 564.47,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Therapies and tests",
+      "printed_page": 33,
+      "pdf_page": 35,
+      "font_size": 14.0,
+      "y_position": 621.85,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Tobacco cessation",
+      "printed_page": 34,
+      "pdf_page": 36,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Treatment in a federal, state, or governmental entity",
+      "printed_page": 34,
+      "pdf_page": 36,
+      "font_size": 14.0,
+      "y_position": 176.87,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Voluntary sterilization",
+      "printed_page": 34,
+      "pdf_page": 36,
+      "font_size": 14.0,
+      "y_position": 234.24,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Wilderness treatment programs",
+      "printed_page": 34,
+      "pdf_page": 36,
+      "font_size": 14.0,
+      "y_position": 278.77,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    },
+    {
+      "heading": "Work related illness or injuries",
+      "printed_page": 34,
+      "pdf_page": 36,
+      "font_size": 14.0,
+      "y_position": 322.72,
+      "chapter_start_pdf_page": 32,
+      "chapter_end_pdf_page": 36
+    }
+  ],
+  "How your plan works": [
+    {
+      "heading": "How your medical plan works while you are covered in-network",
+      "printed_page": 35,
+      "pdf_page": 37,
+      "font_size": 14.0,
+      "y_position": 70.46,
+      "chapter_start_pdf_page": 37,
+      "chapter_end_pdf_page": 50
+    },
+    {
+      "heading": "How your medical plan works while you are covered out-of-network",
+      "printed_page": 35,
+      "pdf_page": 37,
+      "font_size": 14.0,
+      "y_position": 330.47,
+      "chapter_start_pdf_page": 37,
+      "chapter_end_pdf_page": 50
+    },
+    {
+      "heading": "Who provides the care",
+      "printed_page": 35,
+      "pdf_page": 37,
+      "font_size": 14.0,
+      "y_position": 443.9,
+      "chapter_start_pdf_page": 37,
+      "chapter_end_pdf_page": 50
+    },
+    {
+      "heading": "Medical necessity and precertification requirements",
+      "printed_page": 36,
+      "pdf_page": 38,
+      "font_size": 14.0,
+      "y_position": 420.38,
+      "chapter_start_pdf_page": 37,
+      "chapter_end_pdf_page": 50
+    },
+    {
+      "heading": "What the plan pays and what you pay",
+      "printed_page": 39,
+      "pdf_page": 41,
+      "font_size": 14.0,
+      "y_position": 414.33,
+      "chapter_start_pdf_page": 37,
+      "chapter_end_pdf_page": 50
+    },
+    {
+      "heading": "Recognized charge",
+      "printed_page": 40,
+      "pdf_page": 42,
+      "font_size": 14.0,
+      "y_position": 362.42,
+      "chapter_start_pdf_page": 37,
+      "chapter_end_pdf_page": 50
+    },
+    {
+      "heading": "Coordination of benefits",
+      "printed_page": 45,
+      "pdf_page": 47,
+      "font_size": 14.0,
+      "y_position": 49.43,
+      "chapter_start_pdf_page": 37,
+      "chapter_end_pdf_page": 50
+    },
+    {
+      "heading": "Effect of prior plan coverage",
+      "printed_page": 47,
+      "pdf_page": 49,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 37,
+      "chapter_end_pdf_page": 50
+    },
+    {
+      "heading": "Benefit payments and claims",
+      "printed_page": 47,
+      "pdf_page": 49,
+      "font_size": 14.0,
+      "y_position": 258.71,
+      "chapter_start_pdf_page": 37,
+      "chapter_end_pdf_page": 50
+    }
+  ],
+  "Complaints, claim decisions and appeals procedures": [
+    {
+      "heading": "The difference between a complaint and an appeal",
+      "printed_page": 49,
+      "pdf_page": 51,
+      "font_size": 14.0,
+      "y_position": 57.28,
+      "chapter_start_pdf_page": 51,
+      "chapter_end_pdf_page": 54
+    },
+    {
+      "heading": "Claim decisions and appeal procedures",
+      "printed_page": 49,
+      "pdf_page": 51,
+      "font_size": 14.0,
+      "y_position": 237.95,
+      "chapter_start_pdf_page": 51,
+      "chapter_end_pdf_page": 54
+    },
+    {
+      "heading": "Appeals of adverse benefit determinations",
+      "printed_page": 49,
+      "pdf_page": 51,
+      "font_size": 14.0,
+      "y_position": 416.17,
+      "chapter_start_pdf_page": 51,
+      "chapter_end_pdf_page": 54
+    },
+    {
+      "heading": "Timeframes for deciding appeals",
+      "printed_page": 50,
+      "pdf_page": 52,
+      "font_size": 14.0,
+      "y_position": 158.07,
+      "chapter_start_pdf_page": 51,
+      "chapter_end_pdf_page": 54
+    },
+    {
+      "heading": "Exhaustion of appeals process",
+      "printed_page": 50,
+      "pdf_page": 52,
+      "font_size": 14.0,
+      "y_position": 313.88,
+      "chapter_start_pdf_page": 51,
+      "chapter_end_pdf_page": 54
+    },
+    {
+      "heading": "External review",
+      "printed_page": 50,
+      "pdf_page": 52,
+      "font_size": 14.0,
+      "y_position": 521.31,
+      "chapter_start_pdf_page": 51,
+      "chapter_end_pdf_page": 54
+    },
+    {
+      "heading": "Recordkeeping",
+      "printed_page": 52,
+      "pdf_page": 54,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 51,
+      "chapter_end_pdf_page": 54
+    },
+    {
+      "heading": "Fees and expenses",
+      "printed_page": 52,
+      "pdf_page": 54,
+      "font_size": 14.0,
+      "y_position": 79.95,
+      "chapter_start_pdf_page": 51,
+      "chapter_end_pdf_page": 54
+    }
+  ],
+  "Eligibility, starting and stopping coverage": [
+    {
+      "heading": "Eligibility",
+      "printed_page": 53,
+      "pdf_page": 55,
+      "font_size": 14.0,
+      "y_position": 70.71,
+      "chapter_start_pdf_page": 55,
+      "chapter_end_pdf_page": 58
+    },
+    {
+      "heading": "Starting coverage",
+      "printed_page": 54,
+      "pdf_page": 56,
+      "font_size": 14.0,
+      "y_position": 340.34,
+      "chapter_start_pdf_page": 55,
+      "chapter_end_pdf_page": 58
+    },
+    {
+      "heading": "Stopping coverage",
+      "printed_page": 54,
+      "pdf_page": 56,
+      "font_size": 14.0,
+      "y_position": 397.72,
+      "chapter_start_pdf_page": 55,
+      "chapter_end_pdf_page": 58
+    },
+    {
+      "heading": "Special coverage options after your coverage ends",
+      "printed_page": 55,
+      "pdf_page": 57,
+      "font_size": 14.0,
+      "y_position": 351.43,
+      "chapter_start_pdf_page": 55,
+      "chapter_end_pdf_page": 58
+    }
+  ],
+  "General provisions – other things you should know": [
+    {
+      "heading": "Administrative provisions",
+      "printed_page": 57,
+      "pdf_page": 59,
+      "font_size": 14.0,
+      "y_position": 70.71,
+      "chapter_start_pdf_page": 59,
+      "chapter_end_pdf_page": 63
+    },
+    {
+      "heading": "Claim administrator",
+      "printed_page": 57,
+      "pdf_page": 59,
+      "font_size": 14.0,
+      "y_position": 293.48,
+      "chapter_start_pdf_page": 59,
+      "chapter_end_pdf_page": 63
+    },
+    {
+      "heading": "Coverage and services",
+      "printed_page": 57,
+      "pdf_page": 59,
+      "font_size": 14.0,
+      "y_position": 431.42,
+      "chapter_start_pdf_page": 59,
+      "chapter_end_pdf_page": 63
+    },
+    {
+      "heading": "Honest mistakes and intentional deception",
+      "printed_page": 58,
+      "pdf_page": 60,
+      "font_size": 14.0,
+      "y_position": 36.0,
+      "chapter_start_pdf_page": 59,
+      "chapter_end_pdf_page": 63
+    },
+    {
+      "heading": "Some other money issues",
+      "printed_page": 58,
+      "pdf_page": 60,
+      "font_size": 14.0,
+      "y_position": 327.6,
+      "chapter_start_pdf_page": 59,
+      "chapter_end_pdf_page": 63
+    },
+    {
+      "heading": "Your health information",
+      "printed_page": 61,
+      "pdf_page": 63,
+      "font_size": 14.0,
+      "y_position": 223.99,
+      "chapter_start_pdf_page": 59,
+      "chapter_end_pdf_page": 63
+    },
+    {
+      "heading": "Sutter Health and Affiliates Services",
+      "printed_page": 61,
+      "pdf_page": 63,
+      "font_size": 14.0,
+      "y_position": 348.51,
+      "chapter_start_pdf_page": 59,
+      "chapter_end_pdf_page": 63
+    }
+  ]
+}
