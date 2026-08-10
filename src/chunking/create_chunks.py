@@ -8,8 +8,8 @@ import tiktoken
 
 
 
-STRUCTURED_PATH = Path("structured_sections.json")
-OUTPUT_PATH = Path("policy_chunks.json")
+STRUCTURED_PATH = Path("../data/processed/structured_sections.json")
+OUTPUT_PATH = Path("../data/processed/policy_chunks.json")
 
 MAX_CHUNK_TOKENS = 750
 

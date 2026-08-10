@@ -16,9 +16,9 @@ MANUAL_HEADING_ALIASES = {
         "When coverage may continue under the plan"
 }
 
-HEADINGS_PATH = Path("pymudpdf/headings_by_chapter.json")
-DOCLING_PATH = Path("docling/aetna_docling.json")
-OUTPUT_PATH = Path("structured_sections.json")
+HEADINGS_PATH = Path("data/processed/headings_by_chapter.json")
+DOCLING_PATH = Path("data/parsed/aetna_docling.json")
+OUTPUT_PATH = Path("data/processed/structured_sections.json")
 
 
 def normalize_text(text: str) -> str:

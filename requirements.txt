@@ -1,3 +1,4 @@
 fitz
 docling
 tiktoken
+sentence-transformers

@@ -4,10 +4,10 @@ import json
 from docling.document_converter import DocumentConverter
 
 
-PDF_PATH = Path("aetna-2500-4000-full-plan.pdf")
+PDF_PATH = Path("data/raw/aetna-2500-4000-full-plan.pdf")
 
-OUTPUT_JSON = Path("aetna_docling.json")
-OUTPUT_MD = Path("aetna_docling.md")
+OUTPUT_JSON = Path("data/parsed/aetna_docling.json")
+#OUTPUT_MD = Path("aetna_docling.md")
 
 
 def parse_pdf(pdf_path: Path):
@@ -32,10 +32,10 @@ def main():
     doc.save_as_json(OUTPUT_JSON)
 
     # Human-readable version for inspection
-    doc.save_as_markdown(OUTPUT_MD)
+    #doc.save_as_markdown(OUTPUT_MD)
 
     print(f"Saved structured JSON: {OUTPUT_JSON.resolve()}")
-    print(f"Saved Markdown:        {OUTPUT_MD.resolve()}")
+    #print(f"Saved Markdown:        {OUTPUT_MD.resolve()}")
 
 
 if __name__ == "__main__":

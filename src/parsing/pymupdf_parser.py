@@ -5,8 +5,8 @@ from pathlib import Path
 import pymupdf as fitz  # PyMuPDF
 
 
-PDF_PATH = Path("aetna-2500-4000-full-plan.pdf")
-OUTPUT_PATH = Path("headings_by_chapter.json")
+PDF_PATH = Path("data/raw/aetna-2500-4000-full-plan.pdf")
+OUTPUT_PATH = Path("data/processed/headings_by_chapter.json")
 
 
 # Page numbers below are the printed page numbers shown in the table
