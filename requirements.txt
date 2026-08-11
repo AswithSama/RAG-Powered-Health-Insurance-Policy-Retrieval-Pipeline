@@ -2,3 +2,7 @@ fitz
 docling
 tiktoken
 sentence-transformers
+langchain
+python-dotenv
+langchain-openai
+rank_bm25

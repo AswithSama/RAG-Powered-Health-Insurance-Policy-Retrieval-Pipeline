@@ -1,2 +1,6 @@
 4. Carry heading hierarchy as metadata, not just chunk grouping
 Your current output already groups by heading reasonably well, but each chunk should ideally carry a "breadcrumb" path like Chapter 3 > How your plan works > Medical necessity and precertification requirements in metadata rather than relying on the chunk text alone. Tools like LangChain's MarkdownHeaderTextSplitter or LlamaIndex's MarkdownNodeParser do this automatically once you have clean Markdown — they split on heading boundaries and stash the heading path in each node's metadata.
+
+SNT should be a compact but semantically broad representation of all meaningful information in the chunk, preserving important terminology, relationships, conditions, exclusions, exceptions, numbers, and polarity while removing low-value wording and repetition.
+
+take one example query sentence as an example in readme and explain the insights you found about scores

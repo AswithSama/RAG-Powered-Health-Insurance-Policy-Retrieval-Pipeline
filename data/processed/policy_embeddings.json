@@ -4,7 +4,7 @@
   "total_chunks": 38,
   "records": [
     {
-      "chunk_id": "coverage_and_exclusions_chunk_001",
+      "chunk_id": "001",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Providing covered services",
@@ -786,7 +786,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_002",
+      "chunk_id": "002",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Ambulance services",
@@ -1568,7 +1568,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_003",
+      "chunk_id": "003",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Behavioral health"
@@ -2348,7 +2348,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_004",
+      "chunk_id": "004",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Clinical trials",
@@ -3129,7 +3129,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_005",
+      "chunk_id": "005",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Emergency services",
@@ -3911,7 +3911,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_006",
+      "chunk_id": "006",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Hearing aids",
@@ -4693,7 +4693,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_007",
+      "chunk_id": "007",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Hospice care",
@@ -5474,7 +5474,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_008",
+      "chunk_id": "008",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Infertility services",
@@ -6255,7 +6255,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_009",
+      "chunk_id": "009",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Institutes of Quality Bariatric",
@@ -7038,7 +7038,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_010",
+      "chunk_id": "010",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Oral and maxillofacial treatment (mouth, jaws and teeth)",
@@ -7820,7 +7820,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_011",
+      "chunk_id": "011",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Prescription drugs - outpatient"
@@ -8600,7 +8600,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_012",
+      "chunk_id": "012",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Preventive care"
@@ -9380,7 +9380,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_013",
+      "chunk_id": "013",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Prosthetic device",
@@ -10163,7 +10163,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_014",
+      "chunk_id": "014",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Short-term rehabilitation services",
@@ -10945,7 +10945,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_015",
+      "chunk_id": "015",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Telemedicine",
@@ -11726,7 +11726,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_016",
+      "chunk_id": "016",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Therapies – chemotherapy, GCIT, infusion, radiation"
@@ -12506,7 +12506,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_017",
+      "chunk_id": "017",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Transplant services",
@@ -13287,7 +13287,7 @@
       ]
     },
     {
-      "chunk_id": "coverage_and_exclusions_chunk_018",
+      "chunk_id": "018",
       "chapter": "Coverage and exclusions",
       "headings": [
         "Urgent care services",
@@ -14069,7 +14069,7 @@
       ]
     },
     {
-      "chunk_id": "general_plan_exclusions_chunk_001",
+      "chunk_id": "019",
       "chapter": "General plan exclusions",
       "headings": [
         "Behavioral health treatment",
@@ -14856,7 +14856,7 @@
       ]
     },
     {
-      "chunk_id": "general_plan_exclusions_chunk_002",
+      "chunk_id": "020",
       "chapter": "General plan exclusions",
       "headings": [
         "Examinations",
@@ -15649,7 +15649,7 @@
       ]
     },
     {
-      "chunk_id": "general_plan_exclusions_chunk_003",
+      "chunk_id": "021",
       "chapter": "General plan exclusions",
       "headings": [
         "Routine exams and preventive services and supplies",
@@ -16440,7 +16440,7 @@
       ]
     },
     {
-      "chunk_id": "how_your_plan_works_chunk_001",
+      "chunk_id": "022",
       "chapter": "How your plan works",
       "headings": [
         "How your medical plan works while you are covered in-network",
@@ -17221,7 +17221,7 @@
       ]
     },
     {
-      "chunk_id": "how_your_plan_works_chunk_002",
+      "chunk_id": "023",
       "chapter": "How your plan works",
       "headings": [
         "Who provides the care"
@@ -18001,7 +18001,7 @@
       ]
     },
     {
-      "chunk_id": "how_your_plan_works_chunk_003",
+      "chunk_id": "024",
       "chapter": "How your plan works",
       "headings": [
         "Medical necessity and precertification requirements"
@@ -18781,7 +18781,7 @@
       ]
     },
     {
-      "chunk_id": "how_your_plan_works_chunk_004",
+      "chunk_id": "025",
       "chapter": "How your plan works",
       "headings": [
         "What the plan pays and what you pay"
@@ -19561,7 +19561,7 @@
       ]
     },
     {
-      "chunk_id": "how_your_plan_works_chunk_005",
+      "chunk_id": "026",
       "chapter": "How your plan works",
       "headings": [
         "Recognized charge"
@@ -20341,7 +20341,7 @@
       ]
     },
     {
-      "chunk_id": "how_your_plan_works_chunk_006",
+      "chunk_id": "027",
       "chapter": "How your plan works",
       "headings": [
         "Coordination of benefits"
@@ -21121,7 +21121,7 @@
       ]
     },
     {
-      "chunk_id": "how_your_plan_works_chunk_007",
+      "chunk_id": "028",
       "chapter": "How your plan works",
       "headings": [
         "Effect of prior plan coverage"
@@ -21901,7 +21901,7 @@
       ]
     },
     {
-      "chunk_id": "how_your_plan_works_chunk_008",
+      "chunk_id": "029",
       "chapter": "How your plan works",
       "headings": [
         "Benefit payments and claims"
@@ -22681,7 +22681,7 @@
       ]
     },
     {
-      "chunk_id": "complaints_claim_decisions_and_appeals_procedures_chunk_001",
+      "chunk_id": "030",
       "chapter": "Complaints, claim decisions and appeals procedures",
       "headings": [
         "The difference between a complaint and an appeal",
@@ -23463,7 +23463,7 @@
       ]
     },
     {
-      "chunk_id": "complaints_claim_decisions_and_appeals_procedures_chunk_002",
+      "chunk_id": "031",
       "chapter": "Complaints, claim decisions and appeals procedures",
       "headings": [
         "Timeframes for deciding appeals",
@@ -24244,7 +24244,7 @@
       ]
     },
     {
-      "chunk_id": "complaints_claim_decisions_and_appeals_procedures_chunk_003",
+      "chunk_id": "032",
       "chapter": "Complaints, claim decisions and appeals procedures",
       "headings": [
         "External review",
@@ -25026,7 +25026,7 @@
       ]
     },
     {
-      "chunk_id": "eligibility_starting_and_stopping_coverage_chunk_001",
+      "chunk_id": "033",
       "chapter": "Eligibility, starting and stopping coverage",
       "headings": [
         "Eligibility",
@@ -25807,7 +25807,7 @@
       ]
     },
     {
-      "chunk_id": "eligibility_starting_and_stopping_coverage_chunk_002",
+      "chunk_id": "034",
       "chapter": "Eligibility, starting and stopping coverage",
       "headings": [
         "Stopping coverage"
@@ -26587,7 +26587,7 @@
       ]
     },
     {
-      "chunk_id": "eligibility_starting_and_stopping_coverage_chunk_003",
+      "chunk_id": "035",
       "chapter": "Eligibility, starting and stopping coverage",
       "headings": [
         "Special coverage options after your coverage ends"
@@ -27367,7 +27367,7 @@
       ]
     },
     {
-      "chunk_id": "general_provisions_other_things_you_should_know_chunk_001",
+      "chunk_id": "036",
       "chapter": "General provisions – other things you should know",
       "headings": [
         "Administrative provisions",
@@ -28150,7 +28150,7 @@
       ]
     },
     {
-      "chunk_id": "general_provisions_other_things_you_should_know_chunk_002",
+      "chunk_id": "037",
       "chapter": "General provisions – other things you should know",
       "headings": [
         "Some other money issues"
@@ -28930,7 +28930,7 @@
       ]
     },
     {
-      "chunk_id": "general_provisions_other_things_you_should_know_chunk_003",
+      "chunk_id": "038",
       "chapter": "General provisions – other things you should know",
       "headings": [
         "Your health information",
