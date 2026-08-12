@@ -4,19 +4,16 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
-from hybrid_retrieval import (
-    NT_EMBEDDINGS_PATH,
-    SNT_EMBEDDINGS_PATH,
-    IE_EMBEDDINGS_PATH,
+from src.database.mongodb import get_database
+
+from src.retrieval.atlas_hybrid_retrieval import (
     MODEL_NAME,
-    load_records,
-    load_chunks,
-    build_embedding_lookup,
+    load_chunks_from_mongodb,
     build_bm25,
-    hybrid_retrieve,
+    atlas_hybrid_retrieve,
 )
 
-from cross_encoding import (
+from src.retrieval.cross_encoding import (
     CROSS_ENCODER_MODEL,
     rerank_with_cross_encoder,
 )
@@ -136,28 +133,25 @@ def build_context(results: list[dict]) -> str:
 def main():
 
     # --------------------------------------------------
-    # Load stored embeddings/data
+    # MongoDB Atlas
     # --------------------------------------------------
 
-    nt_records = load_records(NT_EMBEDDINGS_PATH)
-    snt_records = load_records(SNT_EMBEDDINGS_PATH)
-    ie_records = load_records(IE_EMBEDDINGS_PATH)
+    db = get_database()
 
-    chunks = load_chunks()
-
-    print(f"Loaded {len(nt_records)} NT embeddings.")
-    print(f"Loaded {len(snt_records)} SNT embeddings.")
-    print(f"Loaded {len(ie_records)} IE embeddings.")
+    chunks_collection = db["chunks"]
+    ie_collection = db["internal_embeddings"]
 
     # --------------------------------------------------
-    # Build retrieval structures
+    # Load chunk text from MongoDB for BM25
     # --------------------------------------------------
 
-    nt_lookup = build_embedding_lookup(nt_records)
-    snt_lookup = build_embedding_lookup(snt_records)
+    chunks = load_chunks_from_mongodb(chunks_collection)
 
-    if set(nt_lookup) != set(snt_lookup):
-        raise ValueError("NT and SNT chunk IDs do not match.")
+    print(f"Loaded {len(chunks)} chunks from MongoDB Atlas.")
+
+    # --------------------------------------------------
+    # Build BM25
+    # --------------------------------------------------
 
     bm25, bm25_chunk_ids = build_bm25(chunks)
 
@@ -191,22 +185,23 @@ def main():
             break
 
         # --------------------------------------------------
-        # 1. Hybrid retrieval
+        # 1. Atlas hybrid retrieval
         #
-        # NT + SNT + BM25
-        # -> RRF
+        # Atlas NT vector search
+        # + Atlas SNT vector search
+        # + BM25
+        # + RRF
         # -> top 10 chunks
-        # -> IE cosine
+        # -> Atlas IE vector search
         # --------------------------------------------------
 
-        ie_results = hybrid_retrieve(
+        ie_results = atlas_hybrid_retrieve(
             query=query,
             model=embedding_model,
-            nt_lookup=nt_lookup,
-            snt_lookup=snt_lookup,
+            chunks_collection=chunks_collection,
+            ie_collection=ie_collection,
             bm25=bm25,
             bm25_chunk_ids=bm25_chunk_ids,
-            ie_records=ie_records,
         )
 
         # --------------------------------------------------
@@ -220,7 +215,8 @@ def main():
         )
 
         # --------------------------------------------------
-        # Guardrail: no sufficiently relevant evidence
+        # Guardrail:
+        # no sufficiently relevant evidence
         # --------------------------------------------------
 
         if not reranked_results:
@@ -241,7 +237,7 @@ def main():
         context = build_context(ordered_results)
 
         # --------------------------------------------------
-        # 5. Final answer generation
+        # 5. Final grounded answer
         # --------------------------------------------------
 
         response = answer_chain.invoke(
@@ -261,7 +257,10 @@ def main():
 
         print(response.content)
 
-        # Temporary debugging information.
+        # --------------------------------------------------
+        # Temporary debugging information
+        # --------------------------------------------------
+
         print("\n" + "-" * 80)
         print("PASSAGES USED")
         print("-" * 80)
@@ -270,7 +269,7 @@ def main():
             print(
                 f"{result['internal_id']} | "
                 f"{result['ie_heading']} | "
-                f"IE cosine: {result['ie_score']:.4f} | "
+                f"Atlas score: {result['ie_score']:.4f} | "
                 f"CrossEncoder: {result['cross_encoder_score']:.4f}"
             )
 

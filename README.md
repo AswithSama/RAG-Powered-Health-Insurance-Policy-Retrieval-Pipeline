@@ -2,7 +2,7 @@
 
 A retrieval-augmented generation (RAG) system designed to answer questions from complex health insurance policy documents while preserving coverage rules, exclusions, conditions, limits, and other policy-specific details.
 
-Rather than relying on a single vector search over arbitrarily split chunks, this project builds a multi-stage retrieval pipeline that combines document structure, multiple semantic representations, lexical retrieval, rank fusion, fine-grained internal retrieval, CrossEncoder reranking, and grounded LLM generation.
+Rather than relying on a single vector search over arbitrarily split chunks, this project builds a multi-stage retrieval pipeline that combines document structure, multiple semantic representations, lexical retrieval, rank fusion, fine-grained internal retrieval, MongoDB Atlas Vector Search, CrossEncoder reranking, and grounded LLM generation.
 
 ---
 
@@ -50,60 +50,72 @@ The system first identifies relevant chunks for recall, then searches the indivi
 
 ```text
                         Health Insurance PDF
-                                 │
-                  ┌──────────────┴──────────────┐
-                  │                             │
-                  ▼                             ▼
-               PyMuPDF                       Docling
-          Heading Detection            Structured Content
-                  │                             │
-                  └──────────────┬──────────────┘
-                                 ▼
-                        Structured Sections
-                                 │
-                                 ▼
-                         Section-Aware Chunking
-                                 │
-             ┌───────────────────┼───────────────────┐
-             │                   │                   │
-             ▼                   ▼                   ▼
-       Narrative Text       LLM Summaries       Internal Sections
-         Embeddings               │                   │
-             │                    ▼                   ▼
-             │             Summary Embeddings    IE Embeddings
-             │                    │                   │
-             └──────────┬─────────┘                   │
-                        ▼                             │
-                  Dense Retrieval                     │
-                        │                             │
-User Query ───────────► BM25                          │
-                        │                             │
-                        ▼                             │
-               Reciprocal Rank Fusion                 │
-                        │                             │
-                        ▼                             │
-                  Top 10 Chunks ──────────────────────┘
+                                │
+                  ┌─────────────┴─────────────┐
+                  │                           │
+                  ▼                           ▼
+               PyMuPDF                    Docling
+          Heading Detection         Structured Content
+                  │                           │
+                  └─────────────┬─────────────┘
+                                ▼
+                       Structured Sections
+                                │
+                                ▼
+                     Section-Aware Chunking
+                                │
+             ┌──────────────────┼──────────────────┐
+             │                  │                  │
+             ▼                  ▼                  ▼
+       Narrative Text      LLM Summaries     Internal Sections
+             │                  │                  │
+             ▼                  ▼                  ▼
+        NT Embeddings      SNT Embeddings      IE Embeddings
+             │                  │                  │
+             └──────────┬───────┴──────────┬───────┘
+                        │                  │
+                        ▼                  ▼
+                 MongoDB Atlas      MongoDB Atlas
+                chunks collection   internal_embeddings
+                        │              collection
+                        │
+User Query              │
+    │                   │
+    ▼                   │
+BGE Query Embedding     │
+    │                   │
+    ├──────────────► Atlas NT Vector Search
+    │                   +
+    ├──────────────► Atlas SNT Vector Search
+    │                   +
+    └──────────────► BM25
                         │
                         ▼
-                 IE Cosine Retrieval
+               Reciprocal Rank Fusion
                         │
                         ▼
-                  Top IE Candidates
+                   Top 10 Chunks
                         │
                         ▼
-                    CrossEncoder
+             Atlas IE Vector Search
                         │
                         ▼
-                 Relevance Threshold
+                Top IE Candidates
                         │
                         ▼
-              Lost-in-the-Middle Ordering
+                   CrossEncoder
                         │
                         ▼
-                   Grounded LLM
+                Relevance Threshold
                         │
                         ▼
-                    Final Answer
+             Lost-in-the-Middle Ordering
+                        │
+                        ▼
+                  Grounded LLM
+                        │
+                        ▼
+                   Final Answer
 ```
 
 ---
@@ -168,7 +180,7 @@ A chunk therefore contains metadata such as:
 
 ```json
 {
-  "chunk_id": "...",
+  "chunk_id": "001",
   "chapter": "Coverage and exclusions",
   "headings": [
     "Providing covered services",
@@ -292,25 +304,35 @@ They allow the second retrieval layer to search inside the chunks selected by th
 
 ---
 
-# 4. Dense Chunk Retrieval
+# 4. Atlas Dense Chunk Retrieval
 
-When a query arrives, it is embedded using the same BGE model.
+When a query arrives, it is embedded using the same BGE model used during ingestion.
 
-Cosine similarity is calculated independently against both representations:
+Rather than loading the complete embedding matrices from local JSON files and scanning them with NumPy, the runtime pipeline performs vector retrieval through **MongoDB Atlas Vector Search**.
+
+Two vector representations are stored on each chunk:
 
 ```text
-cos(NT, query)
-
-cos(SNT, query)
+nt_embedding
+snt_embedding
 ```
 
-The current dense score is:
+Two Atlas Vector Search indexes are used independently:
+
+```text
+nt_vector_index
+snt_vector_index
+```
+
+The query embedding is searched against both indexes, producing an NT ranking and an SNT ranking.
+
+The current dense score combines the two Atlas retrieval scores:
 
 ```text
 Dense Score =
-0.5 × cos(NT, query)
+0.5 × NT score
 +
-0.5 × cos(SNT, query)
+0.5 × SNT score
 ```
 
 Therefore:
@@ -346,12 +368,14 @@ The BM25 corpus currently consists of:
 chunk headings + original chunk content
 ```
 
+Chunk content is loaded from MongoDB Atlas when the retrieval pipeline initializes, and an in-memory BM25 index is constructed for lexical retrieval.
+
 This allows rare and highly specific terms to receive greater importance than common policy words such as `plan`, `health`, or `services`.
 
 The goal is not to replace semantic retrieval, but to combine:
 
 ```text
-Dense retrieval → conceptual similarity
+Atlas dense retrieval → conceptual similarity
 
 BM25 → lexical / terminology similarity
 ```
@@ -393,23 +417,29 @@ This forms the first retrieval layer.
 
 ---
 
-# 7. Fine-Grained Internal Retrieval
+# 7. Fine-Grained Atlas Internal Retrieval
 
-The top 10 chunks define the region of the policy that is most likely to contain the answer.
+The top 10 chunks define the region of the policy most likely to contain the answer.
 
-The system then gathers only the Internal Embeddings belonging to those chunks.
+The second retrieval layer then searches the `internal_embeddings` collection in MongoDB Atlas.
+
+The Atlas Vector Search query is constrained using the selected `chunk_id` values so that only internal sections belonging to the first-stage candidate chunks are considered.
 
 ```text
 Top 10 chunks
        │
        ▼
-Filter IEs by chunk_id
+Selected chunk IDs
        │
        ▼
-cos(query, IE)
+Atlas IE Vector Search
+       │
+       ├── vector similarity
+       │
+       └── chunk_id filtering
        │
        ▼
-Rank internal sections
+Ranked internal sections
 ```
 
 The current candidate limit is:
@@ -420,7 +450,7 @@ IE_TOP_K = 20
 
 This creates a smaller pool of fine-grained policy passages for more expensive reranking.
 
-BM25 is currently **not used at the IE layer**. Initial experiments showed that IE cosine retrieval successfully surfaced the correct fine-grained policy section, so lexical retrieval at this stage has been intentionally left as a future evaluation option.
+BM25 is currently **not used at the IE layer**. Initial experiments showed that Atlas IE vector retrieval successfully surfaced the correct fine-grained policy section, so lexical retrieval at this stage has intentionally been left as a future evaluation option.
 
 ---
 
@@ -557,32 +587,118 @@ Query:
 Does my health plan cover acupuncture for back pain?
 ```
 
-The fine-grained retrieval layer produced:
+After MongoDB Atlas fine-grained retrieval and CrossEncoder reranking, the surviving passage was:
 
 ```text
 001_ie_003 | Acupuncture
-IE cosine: 0.7230
+Atlas score: 0.8615
 CrossEncoder: -1.9394
 ```
 
-After thresholding, the Acupuncture provision was supplied to the final LLM.
+The Acupuncture provision passed the relevance threshold and was supplied to the final LLM.
 
-Example answer:
+Example answer from the Atlas-backed pipeline:
 
 ```text
-No. The policy says acupuncture is only covered when provided
-by a physician as a form of anesthesia in connection with a
-covered surgical procedure.
-
-The policy lists acupuncture other than for anesthesia as a
-not-covered service. Therefore, acupuncture for back pain,
-when it is not being provided as anesthesia for a covered
-surgery, is not covered under this provision.
+No. The policy's "Acupuncture" section says acupuncture is covered
+only when provided by a physician as a form of anesthesia in connection
+with a covered surgical procedure. The policy explicitly lists
+"Acupuncture, other than for anesthesia" as not covered.
 ```
 
 This example illustrates the purpose of the multi-stage architecture.
 
-The first retrieval layer finds the relevant region of the policy. Internal retrieval isolates the exact provision. The CrossEncoder removes weaker semantic matches, and the final LLM answers from the surviving policy evidence.
+The first retrieval layer finds the relevant region of the policy. Atlas Internal Embedding retrieval isolates the exact provision. The CrossEncoder removes weaker semantic matches, and the final LLM answers from the surviving policy evidence.
+
+---
+
+# MongoDB Atlas Storage and Vector Retrieval
+
+The project initially used local JSON artifacts throughout development.
+
+This was intentional: intermediate JSON representations made it easy to inspect heading extraction, structured sections, chunk boundaries, summaries, identifiers, embeddings, and retrieval behavior while the architecture was evolving.
+
+Once the retrieval pipeline stabilized, the retrieval-ready representations were migrated to **MongoDB Atlas**.
+
+The runtime RAG pipeline now uses Atlas rather than loading embedding matrices from the local JSON files.
+
+The `chunks` collection stores chunk-level retrieval information conceptually structured as:
+
+```json
+{
+  "chunk_id": "001",
+  "chapter": "Coverage and exclusions",
+  "headings": [
+    "Providing covered services",
+    "Abortion",
+    "Acupuncture"
+  ],
+  "content": "...",
+  "summary": "...",
+  "nt_embedding": [...],
+  "snt_embedding": [...]
+}
+```
+
+Fine-grained policy sections are stored in the `internal_embeddings` collection:
+
+```json
+{
+  "internal_id": "001_ie_003",
+  "chunk_id": "001",
+  "ie_heading": "Acupuncture",
+  "ie_content": "...",
+  "embedding": [...]
+}
+```
+
+Atlas Vector Search indexes are created for the three vector representations:
+
+```text
+NT  → nt_vector_index
+SNT → snt_vector_index
+IE  → ie_vector_index
+```
+
+At query time, NT and SNT vector retrieval execute directly in Atlas.
+
+The resulting chunk rankings are combined with the local BM25 ranking using Reciprocal Rank Fusion. The top chunk IDs are then used as metadata constraints for a second Atlas Vector Search over the internal-section embeddings.
+
+This separates the architecture into two distinct workflows.
+
+The document-processing side:
+
+```text
+Document Processing / Ingestion
+        ↓
+Structured representations
+        ↓
+Embeddings
+        ↓
+MongoDB Atlas
+        ↓
+Persistent retrieval indexes
+```
+
+And the query side:
+
+```text
+User Query
+    ↓
+Query Embedding
+    ↓
+Atlas Vector Search + BM25
+    ↓
+RRF
+    ↓
+Atlas IE Vector Search
+    ↓
+CrossEncoder
+    ↓
+Grounded LLM
+```
+
+Local JSON artifacts remain useful as transparent development checkpoints and reproducible intermediate outputs, but they are no longer the vector retrieval layer used by the live query pipeline.
 
 ---
 
@@ -627,11 +743,14 @@ The first retrieval layer finds the relevant region of the policy. Internal retr
 │   │   ├── dense_retrieval.py
 │   │   ├── bm25_retrieval.py
 │   │   ├── hybrid_retrieval.py
+│   │   ├── atlas_hybrid_retrieval.py
 │   │   ├── cross_encoding.py
 │   │   └── rag_pipeline.py
 │   │
 │   └── database/
-│       └── mongodb.py
+│       ├── mongodb.py
+│       ├── migrate_to_mongodb.py
+│       └── create_vector_indexes.py
 │
 ├── requirements.txt
 ├── .env
@@ -652,12 +771,15 @@ The first retrieval layer finds the relevant region of the policy. Internal retr
 | `chunk_embeddings.py` | Generate NT embeddings |
 | `summary_embeddings.py` | Generate SNT embeddings |
 | `internal_embeddings.py` | Generate fine-grained IE embeddings |
-| `dense_retrieval.py` | Evaluate NT/SNT dense retrieval |
+| `dense_retrieval.py` | Evaluate NT/SNT dense retrieval during development |
 | `bm25_retrieval.py` | Evaluate lexical retrieval |
-| `hybrid_retrieval.py` | Combine dense + BM25 retrieval using RRF and perform IE retrieval |
-| `cross_encoding.py` | Rerank IE candidates using a CrossEncoder and apply relevance filtering |
-| `rag_pipeline.py` | Run retrieval, reranking, context construction, and final answer generation |
-| `mongodb.py` | Reserved for the upcoming MongoDB Atlas integration |
+| `hybrid_retrieval.py` | Original local retrieval implementation used during development and retrieval experiments |
+| `atlas_hybrid_retrieval.py` | Run NT/SNT Atlas Vector Search, combine dense retrieval with BM25 through RRF, and perform filtered IE Vector Search |
+| `cross_encoding.py` | Rerank Atlas IE candidates using a CrossEncoder and apply relevance filtering |
+| `rag_pipeline.py` | Run the complete Atlas-backed retrieval, reranking, context construction, and grounded answer-generation workflow |
+| `mongodb.py` | Manage MongoDB Atlas connections and reusable vector-search operations |
+| `migrate_to_mongodb.py` | Migrate processed chunk and internal-section artifacts into MongoDB Atlas |
+| `create_vector_indexes.py` | Create the Atlas Vector Search indexes used by NT, SNT, and IE retrieval |
 
 ---
 
@@ -676,11 +798,17 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Create a `.env` file and add the OpenAI API key:
+Create a `.env` file containing the required credentials:
 
 ```text
-OPENAI_API_KEY=your_api_key
+OPENAI_API_KEY=your_openai_api_key
+
+MONGODB_URI=your_mongodb_atlas_connection_string
+MONGODB_USERNAME=your_mongodb_username
+MONGODB_PASSWORD=your_mongodb_password
 ```
+
+Do not commit `.env` or database credentials to version control.
 
 The project currently depends on:
 
@@ -693,21 +821,26 @@ LangChain
 python-dotenv
 langchain-openai
 rank-bm25
+pymongo
 ```
 
 ---
 
-# Running the Current RAG Pipeline
+# Running the RAG Pipeline
 
-Once the processed artifacts and embeddings have been generated, run:
+Once the document representations have been generated, migrated to MongoDB Atlas, and the vector indexes have been created, run:
 
 ```bash
-python src/retrieval/rag_pipeline.py
+python -m src.retrieval.rag_pipeline
 ```
 
-The application loads the embedding model, CrossEncoder, stored embeddings, BM25 index, and answer-generation model.
+The application connects to MongoDB Atlas, loads the chunk corpus required for BM25, initializes the embedding model and CrossEncoder, and loads the grounded answer-generation model.
 
-It then waits for a query:
+Document embeddings are **not regenerated** when the query pipeline starts.
+
+The precomputed NT, SNT, and IE representations are retrieved through the Atlas indexes.
+
+The application then waits for a query:
 
 ```text
 Enter query (or 'exit'):
@@ -720,12 +853,16 @@ Enter query (or 'exit'):
 Does my health plan cover acupuncture for back pain?
 ```
 
-The pipeline then executes:
+The runtime pipeline executes:
 
 ```text
 Query
   ↓
-NT/SNT dense retrieval
+BGE query embedding
+  ↓
+Atlas NT Vector Search
+  +
+Atlas SNT Vector Search
   +
 BM25
   ↓
@@ -733,7 +870,7 @@ RRF
   ↓
 Top 10 chunks
   ↓
-IE cosine retrieval
+Atlas IE Vector Search
   ↓
 CrossEncoder
   ↓
@@ -841,89 +978,11 @@ Answer
 
 ---
 
-# Current Storage
-
-The current implementation intentionally uses local JSON artifacts throughout development.
-
-This made intermediate representations easy to inspect while experimenting with:
-
-- heading extraction
-- structured parsing
-- chunk boundaries
-- identifiers
-- summary generation
-- embedding representations
-- retrieval behavior
-
-The JSON files currently act as transparent checkpoints between pipeline stages.
-
-This is useful during experimentation, but they are not intended to remain the final production storage architecture.
-
----
-
-# Next Step: MongoDB Atlas
-
-The next major phase of the project is moving persistent retrieval data into **MongoDB Atlas**.
-
-Instead of treating separate JSON embedding files as the runtime storage layer, the planned architecture will store retrieval-ready documents directly in MongoDB.
-
-A chunk document can eventually combine information currently distributed across several local artifacts:
-
-```json
-{
-  "chunk_id": "001",
-  "chapter": "Coverage and exclusions",
-  "headings": [
-    "Providing covered services",
-    "Abortion",
-    "Acupuncture"
-  ],
-  "content": "...",
-  "summary": "...",
-  "nt_embedding": [...],
-  "snt_embedding": [...]
-}
-```
-
-Fine-grained internal sections can be stored separately:
-
-```json
-{
-  "internal_id": "001_ie_003",
-  "chunk_id": "001",
-  "ie_heading": "Acupuncture",
-  "ie_content": "...",
-  "ie_embedding": [...]
-}
-```
-
-MongoDB Atlas Vector Search can then replace the current in-memory NumPy scan for vector retrieval while preserving the higher-level retrieval architecture.
-
-The goal is:
-
-```text
-Document processing
-        ↓
-MongoDB Atlas
-        ↓
-Vector + metadata retrieval
-        ↓
-RRF / IE retrieval
-        ↓
-CrossEncoder
-        ↓
-LLM
-```
-
-The existing `src/database/mongodb.py` is currently reserved for this integration.
-
----
-
-# Planned Ingestion Pipeline
+# Planned End-to-End Ingestion Orchestration
 
 The current processing stages are implemented independently so they can be inspected and tested individually.
 
-A future orchestration layer will combine them into a reproducible ingestion pipeline:
+The next engineering step is to combine them into a reproducible ingestion pipeline:
 
 ```text
 PDF
@@ -947,21 +1006,38 @@ SNT embeddings
 IE embeddings
  ↓
 MongoDB Atlas
+ ↓
+Atlas Vector Search indexes
 ```
 
-This ingestion process will only need to run when a document is added, changed, or intentionally re-indexed.
+This ingestion process only needs to run when a document is added, changed, or intentionally re-indexed.
 
-Normal user queries will use the already-created retrieval indexes rather than regenerating document representations.
+Normal user queries use the already-created retrieval representations and Atlas indexes rather than regenerating document embeddings.
+
+This creates a clear separation between:
+
+```text
+INGESTION PIPELINE
+Document → Processing → Embeddings → Atlas
+```
+
+and:
+
+```text
+QUERY PIPELINE
+Query → Retrieval → Reranking → LLM → Answer
+```
 
 ---
 
 # Evaluation and Future Work
 
-The current architecture is a working baseline. The next phase will focus on systematic evaluation rather than adding retrieval components without evidence that they are needed.
+The current architecture is a working Atlas-backed baseline.
+
+The next phase will focus on systematic evaluation and reproducibility rather than adding retrieval components without evidence that they are needed.
 
 Planned work includes:
 
-- MongoDB Atlas persistence and Vector Search
 - centralized project configuration
 - end-to-end ingestion orchestration
 - representative policy QA evaluation dataset
@@ -1014,6 +1090,12 @@ should be treated as baseline values until validated against a representative ev
 
 - Reciprocal Rank Fusion (RRF)
 
+**Storage / Vector Retrieval**
+
+- MongoDB Atlas
+- MongoDB Atlas Vector Search
+- PyMongo
+
 **Reranking**
 
 - `cross-encoder/ms-marco-MiniLM-L6-v2`
@@ -1026,16 +1108,11 @@ should be treated as baseline values until validated against a representative ev
 
 - OpenAI models
 
-**Planned Storage / Vector Retrieval**
-
-- MongoDB Atlas
-- Atlas Vector Search
-
 ---
 
 # Status
 
-The current version implements the complete local RAG workflow:
+The current version implements the complete MongoDB Atlas-backed RAG workflow:
 
 ```text
 ✓ Hybrid PDF parsing
@@ -1045,19 +1122,25 @@ The current version implements the complete local RAG workflow:
 ✓ Retrieval-oriented LLM summaries
 ✓ Summary embeddings
 ✓ Internal section embeddings
-✓ Dense NT/SNT retrieval
+✓ MongoDB Atlas persistence
+✓ Atlas NT Vector Search
+✓ Atlas SNT Vector Search
 ✓ BM25 lexical retrieval
 ✓ Reciprocal Rank Fusion
-✓ Fine-grained IE retrieval
+✓ Metadata-constrained Atlas IE Vector Search
 ✓ CrossEncoder reranking
 ✓ Relevance thresholding
 ✓ Lost-in-the-middle mitigation
 ✓ Grounded LLM answer generation
+✓ End-to-end Atlas-backed interactive query pipeline
 
 Next:
-→ MongoDB Atlas integration
-→ End-to-end ingestion pipeline
-→ Evaluation and hyperparameter tuning
+→ Centralized project configuration
+→ End-to-end ingestion orchestration
+→ Evaluation dataset
+→ Retrieval evaluation and hyperparameter tuning
 ```
 
-The project has therefore moved beyond a basic vector-search RAG system into a layered retrieval architecture designed specifically around the structural and semantic challenges of policy documents.
+The project has progressed from a local experimental RAG pipeline into a layered retrieval architecture backed by MongoDB Atlas.
+
+Local processing stages create structured and semantic representations of the policy, while the runtime query path uses Atlas Vector Search, lexical retrieval, rank fusion, fine-grained section retrieval, neural reranking, and grounded generation to progressively narrow the document to the evidence required for an answer.

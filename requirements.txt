@@ -6,3 +6,5 @@ langchain
 python-dotenv
 langchain-openai
 rank_bm25
+numpy
+pymongo

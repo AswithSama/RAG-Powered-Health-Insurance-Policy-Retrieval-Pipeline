@@ -1,20 +1,20 @@
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
-from hybrid_retrieval import (
-    NT_EMBEDDINGS_PATH,
-    SNT_EMBEDDINGS_PATH,
-    IE_EMBEDDINGS_PATH,
+from src.database.mongodb import get_database
+
+from src.retrieval.atlas_hybrid_retrieval import (
     MODEL_NAME,
-    load_records,
-    load_chunks,
-    build_embedding_lookup,
+    load_chunks_from_mongodb,
     build_bm25,
-    hybrid_retrieve,
+    atlas_hybrid_retrieve,
 )
 
 
 CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L6-v2"
 CROSS_ENCODER_TOP_K = 5
+
+# Temporary heuristic threshold.
+# Tune later using an evaluation set.
 CROSS_ENCODER_THRESHOLD = -5.0
 
 
@@ -48,11 +48,11 @@ def rerank_with_cross_encoder(
         reverse=True,
     )
 
+    # Remove weak passages
     filtered_results = [
         result
         for result in reranked_results
-        if result["cross_encoder_score"]
-        >= CROSS_ENCODER_THRESHOLD
+        if result["cross_encoder_score"] >= CROSS_ENCODER_THRESHOLD
     ]
 
     return filtered_results[:top_k]
@@ -61,28 +61,25 @@ def rerank_with_cross_encoder(
 def main():
 
     # --------------------------------------------------
-    # Load retrieval data
+    # MongoDB
     # --------------------------------------------------
 
-    nt_records = load_records(NT_EMBEDDINGS_PATH)
-    snt_records = load_records(SNT_EMBEDDINGS_PATH)
-    ie_records = load_records(IE_EMBEDDINGS_PATH)
+    db = get_database()
 
-    chunks = load_chunks()
-
-    print(f"Loaded {len(nt_records)} NT embeddings.")
-    print(f"Loaded {len(snt_records)} SNT embeddings.")
-    print(f"Loaded {len(ie_records)} IE embeddings.")
+    chunks_collection = db["chunks"]
+    ie_collection = db["internal_embeddings"]
 
     # --------------------------------------------------
-    # Build retrieval structures
+    # Load chunk text from MongoDB for BM25
     # --------------------------------------------------
 
-    nt_lookup = build_embedding_lookup(nt_records)
-    snt_lookup = build_embedding_lookup(snt_records)
+    chunks = load_chunks_from_mongodb(chunks_collection)
 
-    if set(nt_lookup) != set(snt_lookup):
-        raise ValueError("NT and SNT chunk IDs do not match.")
+    print(f"Loaded {len(chunks)} chunks from MongoDB Atlas.")
+
+    # --------------------------------------------------
+    # Build BM25
+    # --------------------------------------------------
 
     bm25, bm25_chunk_ids = build_bm25(chunks)
 
@@ -91,11 +88,9 @@ def main():
     # --------------------------------------------------
 
     print(f"Loading embedding model: {MODEL_NAME}")
-
     embedding_model = SentenceTransformer(MODEL_NAME)
 
     print(f"Loading CrossEncoder: {CROSS_ENCODER_MODEL}")
-
     cross_encoder = CrossEncoder(CROSS_ENCODER_MODEL)
 
     # --------------------------------------------------
@@ -109,27 +104,32 @@ def main():
             break
 
         # --------------------------------------------------
-        # Run hybrid retrieval
+        # Atlas hybrid retrieval
+        #
+        # Atlas NT vector search
+        # + Atlas SNT vector search
+        # + local BM25
+        # + RRF
+        # + Atlas IE vector search
         # --------------------------------------------------
 
-        ie_results = hybrid_retrieve(
+        ie_results = atlas_hybrid_retrieve(
             query=query,
             model=embedding_model,
-            nt_lookup=nt_lookup,
-            snt_lookup=snt_lookup,
+            chunks_collection=chunks_collection,
+            ie_collection=ie_collection,
             bm25=bm25,
             bm25_chunk_ids=bm25_chunk_ids,
-            ie_records=ie_records,
         )
 
-        print("\nIE cosine candidates:\n")
+        print("\nAtlas IE candidates:\n")
 
         for rank, result in enumerate(ie_results, start=1):
             print(
                 f"{rank}. "
                 f"{result['internal_id']} | "
                 f"{result['ie_heading']} | "
-                f"Cosine: {result['ie_score']:.4f}"
+                f"Atlas score: {result['ie_score']:.4f}"
             )
 
         # --------------------------------------------------
@@ -144,17 +144,19 @@ def main():
 
         print("\nCrossEncoder results:\n")
 
+        if not reranked_results:
+            print("No IE passages passed the CrossEncoder threshold.")
+            continue
+
         for rank, result in enumerate(reranked_results, start=1):
             print(
                 f"{rank}. "
                 f"{result['internal_id']} | "
                 f"Chunk {result['chunk_id']} | "
                 f"{result['ie_heading']} | "
-                f"IE cosine: {result['ie_score']:.4f} | "
+                f"Atlas score: {result['ie_score']:.4f} | "
                 f"CrossEncoder: {result['cross_encoder_score']:.4f}"
             )
-
-            #eprint(f"\n{result['ie_content']}\n")
 
 
 if __name__ == "__main__":
