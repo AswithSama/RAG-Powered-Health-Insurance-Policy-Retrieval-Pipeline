@@ -68,3 +68,7 @@ hybrid_parsed_document.md
 # Logs
 # ==============================
 *.log
+
+#personal_notes
+insights.txt
+readme.txt

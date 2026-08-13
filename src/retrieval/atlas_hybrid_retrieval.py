@@ -3,21 +3,29 @@ import re
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
 
+from src.config import (
+    EMBEDDING_MODEL,
+    W_NT,
+    W_SNT,
+    RRF_K,
+    CHUNK_TOP_K,
+    IE_TOP_K,
+    CHUNKS_COLLECTION,
+    INTERNAL_EMBEDDINGS_COLLECTION,
+    NT_VECTOR_INDEX,
+    SNT_VECTOR_INDEX,
+    IE_VECTOR_INDEX,
+    NT_VECTOR_FIELD,
+    SNT_VECTOR_FIELD,
+    IE_VECTOR_FIELD,
+    VECTOR_NUM_CANDIDATES,
+)
+
 from src.database.mongodb import (
     get_database,
     vector_search_chunks,
     vector_search_internal_embeddings,
 )
-
-
-MODEL_NAME = "BAAI/bge-base-en-v1.5"
-
-W_NT = 0.5
-W_SNT = 0.5
-
-RRF_K = 60
-TOP_K = 10
-IE_TOP_K = 20
 
 
 def tokenize(text: str) -> list[str]:
@@ -58,22 +66,23 @@ def atlas_dense_scores(
     query_embedding: list[float],
     chunks_collection,
 ) -> list[dict]:
+
     nt_results = vector_search_chunks(
         collection=chunks_collection,
         query_embedding=query_embedding,
-        index_name="nt_vector_index",
-        path="nt_embedding",
+        index_name=NT_VECTOR_INDEX,
+        path=NT_VECTOR_FIELD,
         limit=38,
-        num_candidates=100,
+        num_candidates=VECTOR_NUM_CANDIDATES,
     )
 
     snt_results = vector_search_chunks(
         collection=chunks_collection,
         query_embedding=query_embedding,
-        index_name="snt_vector_index",
-        path="snt_embedding",
+        index_name=SNT_VECTOR_INDEX,
+        path=SNT_VECTOR_FIELD,
         limit=38,
-        num_candidates=100,
+        num_candidates=VECTOR_NUM_CANDIDATES,
     )
 
     nt_lookup = {
@@ -118,6 +127,7 @@ def bm25_scores(
     bm25: BM25Okapi,
     chunk_ids: list[str],
 ) -> list[dict]:
+
     query_tokens = tokenize(query)
     scores = bm25.get_scores(query_tokens)
 
@@ -143,6 +153,7 @@ def reciprocal_rank_fusion(
     dense_results: list[dict],
     bm25_results: list[dict],
 ) -> list[dict]:
+
     dense_lookup = {
         item["chunk_id"]: item
         for item in dense_results
@@ -153,7 +164,7 @@ def reciprocal_rank_fusion(
         for item in bm25_results
     }
 
-    chunk_ids = set(dense_lookup) | set(bm25_lookup)
+    chunk_ids = set(dense_lookup) & set(bm25_lookup)
 
     fused_results = []
 
@@ -196,63 +207,50 @@ def atlas_hybrid_retrieve(
     bm25_chunk_ids: list[str],
 ) -> list[dict]:
 
-    # --------------------------------------------------
     # Query embedding
-    # --------------------------------------------------
-
     query_embedding = model.encode(
         query,
         normalize_embeddings=True,
     ).tolist()
 
-    # --------------------------------------------------
     # Atlas NT + SNT retrieval
-    # --------------------------------------------------
-
     dense_results = atlas_dense_scores(
         query_embedding=query_embedding,
         chunks_collection=chunks_collection,
     )
 
-    # --------------------------------------------------
-    # Local BM25
-    # --------------------------------------------------
-
+    # BM25 retrieval
     lexical_results = bm25_scores(
         query=query,
         bm25=bm25,
         chunk_ids=bm25_chunk_ids,
     )
 
-    # --------------------------------------------------
-    # RRF
-    # --------------------------------------------------
-
+    # RRF fusion
     fused_results = reciprocal_rank_fusion(
         dense_results,
         lexical_results,
     )
 
-    top_chunks = fused_results[:TOP_K]
+    top_chunks = fused_results[:CHUNK_TOP_K]
 
     selected_chunk_ids = [
         result["chunk_id"]
         for result in top_chunks
     ]
 
-    # --------------------------------------------------
     # Atlas IE vector search
-    # --------------------------------------------------
-
     ie_results = vector_search_internal_embeddings(
         collection=ie_collection,
         query_embedding=query_embedding,
         selected_chunk_ids=selected_chunk_ids,
+        index_name=IE_VECTOR_INDEX,
+        path=IE_VECTOR_FIELD,
         limit=IE_TOP_K,
-        num_candidates=100,
+        num_candidates=VECTOR_NUM_CANDIDATES,
     )
 
-    # Rename Atlas score to match existing pipeline.
+    # Rename Atlas score for compatibility
     for result in ie_results:
         result["ie_score"] = result.pop("score")
 
@@ -262,8 +260,8 @@ def atlas_hybrid_retrieve(
 def main():
     db = get_database()
 
-    chunks_collection = db["chunks"]
-    ie_collection = db["internal_embeddings"]
+    chunks_collection = db[CHUNKS_COLLECTION]
+    ie_collection = db[INTERNAL_EMBEDDINGS_COLLECTION]
 
     chunks = load_chunks_from_mongodb(chunks_collection)
 
@@ -271,9 +269,9 @@ def main():
 
     bm25, bm25_chunk_ids = build_bm25(chunks)
 
-    print(f"Loading embedding model: {MODEL_NAME}")
+    print(f"Loading embedding model: {EMBEDDING_MODEL}")
 
-    model = SentenceTransformer(MODEL_NAME)
+    model = SentenceTransformer(EMBEDDING_MODEL)
 
     while True:
         query = input("\nEnter query (or 'exit'): ").strip()

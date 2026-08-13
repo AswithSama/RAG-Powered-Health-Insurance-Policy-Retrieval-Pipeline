@@ -69,6 +69,8 @@ def vector_search_internal_embeddings(
     collection,
     query_embedding: list[float],
     selected_chunk_ids: list[str],
+    index_name: str,
+    path: str,
     limit: int = 20,
     num_candidates: int = 100,
 ) -> list[dict]:
@@ -76,8 +78,8 @@ def vector_search_internal_embeddings(
     pipeline = [
         {
             "$vectorSearch": {
-                "index": "ie_vector_index",
-                "path": "ie_embedding",
+                "index": index_name,
+                "path": path,
                 "queryVector": query_embedding,
                 "numCandidates": num_candidates,
                 "limit": limit,

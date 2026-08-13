@@ -1,22 +1,21 @@
-
 from __future__ import annotations
-from dotenv import load_dotenv
-
-load_dotenv()
 
 import json
-from pathlib import Path
 
-from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
+from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
+
+from src.config import (
+    STRUCTURED_SECTIONS_PATH,
+    POLICY_CHUNKS_PATH,
+    POLICY_SUMMARIES_PATH,
+    ANSWER_MODEL,
+)
 
 
-SECTIONS_PATH = Path("data/processed/structured_sections.json")
-CHUNKS_PATH = Path("data/processed/policy_chunks.json")
-OUTPUT_PATH = Path("data/processed/policy_heading_summaries.json")
-
-MODEL_NAME = "gpt-5-mini"
+load_dotenv()
 
 
 SYSTEM_PROMPT = """
@@ -70,27 +69,38 @@ FIDELITY RULES
   permitted unless the source supports that conclusion.
 - If the source is ambiguous, preserve the ambiguity rather than
   resolving it.
-
 """
 
+
 class SummaryOutput(BaseModel):
-    summary: str = Field(description="Retrieval-oriented summary of the heading content.")
-    key_terms: list[str] = Field(description="Important terms and phrases useful for retrieval.")
+    summary: str = Field(
+        description="Retrieval-oriented summary of the heading content."
+    )
+
+    key_terms: list[str] = Field(
+        description="Important terms and phrases useful for retrieval."
+    )
 
 
 def load_sections() -> list[dict]:
-    if not SECTIONS_PATH.exists():
-        raise FileNotFoundError(f"Could not find: {SECTIONS_PATH.resolve()}")
+    if not STRUCTURED_SECTIONS_PATH.exists():
+        raise FileNotFoundError(
+            f"Could not find: {STRUCTURED_SECTIONS_PATH.resolve()}"
+        )
 
-    data = json.loads(SECTIONS_PATH.read_text(encoding="utf-8"))
+    data = json.loads(STRUCTURED_SECTIONS_PATH.read_text(encoding="utf-8"))
+
     return data["sections"]
 
 
 def load_chunks() -> list[dict]:
-    if not CHUNKS_PATH.exists():
-        raise FileNotFoundError(f"Could not find: {CHUNKS_PATH.resolve()}")
+    if not POLICY_CHUNKS_PATH.exists():
+        raise FileNotFoundError(
+            f"Could not find: {POLICY_CHUNKS_PATH.resolve()}"
+        )
 
-    data = json.loads(CHUNKS_PATH.read_text(encoding="utf-8"))
+    data = json.loads(POLICY_CHUNKS_PATH.read_text(encoding="utf-8"))
+
     return data["chunks"]
 
 
@@ -98,7 +108,6 @@ def merge_chunk_summaries(
     headings: list[str],
     heading_results: list[dict],
 ) -> str:
-
     summaries = []
     all_key_terms = []
 
@@ -119,21 +128,18 @@ def merge_chunk_summaries(
             if not term_clean:
                 continue
 
-            # Remove terms that are exactly a heading
             if term_clean.lower() in normalized_headings:
                 continue
 
             all_key_terms.append(term_clean)
 
-    # Remove duplicate key terms while preserving order
     unique_key_terms = list(dict.fromkeys(all_key_terms))
 
-    # Merge heading summaries into one chunk summary
     final_summary = " ".join(summaries)
 
     if unique_key_terms:
         key_terms_text = ", ".join(unique_key_terms)
-        final_summary += (f"\n\nKey terms: {key_terms_text}")
+        final_summary += f"\n\nKey terms: {key_terms_text}"
 
     return final_summary
 
@@ -144,9 +150,9 @@ def save_records(records: list[dict]) -> None:
         "records": records,
     }
 
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    POLICY_SUMMARIES_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    OUTPUT_PATH.write_text(
+    POLICY_SUMMARIES_PATH.write_text(
         json.dumps(output, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
@@ -159,42 +165,35 @@ def main():
     print(f"Loaded {len(sections)} sections.")
     print(f"Loaded {len(chunks)} chunks.")
 
-    # -----------------------------------------------
-    # section_id -> section
-    # -----------------------------------------------
-
     section_lookup = {
         section["section_id"]: section
         for section in sections
     }
 
-    # -----------------------------------------------
-    # LLM
-    # -----------------------------------------------
-
-    llm = ChatOpenAI(model=MODEL_NAME,temperature=0)
+    llm = ChatOpenAI(
+        model=ANSWER_MODEL,
+        temperature=0,
+    )
 
     structured_llm = llm.with_structured_output(SummaryOutput)
 
     prompt = ChatPromptTemplate.from_messages(
-        [("system", SYSTEM_PROMPT),
-            ("human",
+        [
+            ("system", SYSTEM_PROMPT),
+            (
+                "human",
                 """
-                Heading:
-                {heading}
+Heading:
+{heading}
 
-                Content:
-                {content}
-                """,
+Content:
+{content}
+""",
             ),
         ]
     )
 
     chain = prompt | structured_llm
-
-    # -----------------------------------------------
-    # Generate summaries
-    # -----------------------------------------------
 
     records = []
 
@@ -212,7 +211,12 @@ def main():
 
             print(f"  Summarizing: {heading}")
 
-            result = chain.invoke({"heading": heading, "content": content})
+            result = chain.invoke(
+                {
+                    "heading": heading,
+                    "content": content,
+                }
+            )
 
             heading_results.append(
                 {
@@ -221,7 +225,10 @@ def main():
                 }
             )
 
-        final_summary = merge_chunk_summaries(chunk["headings"],heading_results)
+        final_summary = merge_chunk_summaries(
+            chunk["headings"],
+            heading_results,
+        )
 
         record = {
             "chunk_id": chunk_id,
@@ -229,13 +236,11 @@ def main():
         }
 
         records.append(record)
-
-        # Save after every successful LLM call.
         save_records(records)
 
     print("\nSummary generation complete.")
     print(f"Total summaries: {len(records)}")
-    print(f"Saved to: {OUTPUT_PATH.resolve()}")
+    print(f"Saved to: {POLICY_SUMMARIES_PATH.resolve()}")
 
 
 if __name__ == "__main__":

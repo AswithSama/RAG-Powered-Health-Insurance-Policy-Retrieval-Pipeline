@@ -1,55 +1,59 @@
 # Multi-Stage RAG for Health Insurance Policy Question Answering
 
-A retrieval-augmented generation (RAG) system designed to answer questions from complex health insurance policy documents while preserving coverage rules, exclusions, conditions, limits, and other policy-specific details.
+## Background
 
-Rather than relying on a single vector search over arbitrarily split chunks, this project builds a multi-stage retrieval pipeline that combines document structure, multiple semantic representations, lexical retrieval, rank fusion, fine-grained internal retrieval, MongoDB Atlas Vector Search, CrossEncoder reranking, and grounded LLM generation.
+This project originally started as a **Hack Midwest hackathon project**, where the goal was to build a useful application around a RAG pipeline using **MongoDB Atlas**. I wanted to explore a problem in healthcare where retrieval and LLMs could make complex information easier for people to understand.
 
----
+While researching potential use cases, I focused on a common problem with health insurance: understanding **what services are covered, what conditions or exclusions apply, and what a patient may actually be responsible for paying**.
 
-## The Problem
+During this research, I found that the information needed to understand health insurance coverage is primarily spread across three types of documents:
 
-Health insurance policies are difficult documents for traditional RAG systems.
+1. **Explanation of Benefits (EOB)** — Explains how a specific patient's healthcare claim was processed, including the amount billed, what the insurance plan covered, and what the patient may owe.
+2. **Summary of Benefits and Coverage (SBC)** — Provides a short, standardized overview of a health plan's major benefits, coverage levels, cost-sharing information, and common exclusions.
+3. **Detailed Policy/Coverage Document** — Defines the plan's detailed coverage rules, including covered services, exclusions, limitations, medical-necessity requirements, precertification requirements, exceptions, and other policy conditions.
 
-A policy may contain hundreds of pages describing covered services, exclusions, limitations, medical-necessity requirements, precertification rules, definitions, exceptions, and benefit conditions. A simple fixed-size chunking strategy can easily separate a heading from the rule it describes or split an important condition across multiple chunks.
+## Problem Statement
 
-Retrieval presents another challenge.
+The project focuses on building a system where a user can ask a natural-language question about their health insurance, potentially using information from their **EOB**, and the system retrieves the relevant provisions from the detailed policy document to explain how the policy applies to their question.
 
-A semantic embedding may understand that *acupuncture*, *physical rehabilitation*, and *pain treatment* are related concepts, but a policy question often depends on finding the **exact policy provision**, not merely a semantically similar medical topic.
+Rather than simply generating an answer, the goal is to return the **relevant policy information along with its source section or page as supporting evidence**. This helps users better understand whether a service is covered, excluded, limited, or subject to specific conditions while also allowing them to verify where the answer came from in the actual policy document.
 
-For example:
+The **SBC was excluded from the primary RAG pipeline** because it is a relatively short and summarized document that can generally be provided directly to an LLM without requiring a complex retrieval architecture. I plan to address the SBC separately in a future problem statement and integrate it into this project. The detailed policy document, on the other hand, can contain significantly more coverage rules and conditions, making accurate retrieval a more suitable problem for RAG.
 
-> Does my health plan cover acupuncture for back pain?
+## Data Source
 
-A useful retrieval system must find the specific **Acupuncture** provision and preserve qualifiers such as:
-
-> acupuncture may only be covered under particular circumstances.
-
-This project was built around that problem.
+The primary data source is the **Aetna Choice POS II High Deductible Health Plan booklet**, which contains the detailed coverage rules, exclusions, limitations, and policy conditions used by the RAG pipeline.
 
 ---
 
 ## Design Philosophy
 
-The system follows three main ideas:
+Health insurance policies can contain interconnected coverage rules, exclusions, limitations, and conditions. Traditional RAG approaches can lose this context through fixed-size chunking or retrieve semantically similar content instead of the **exact policy provision** needed to answer a question.
 
-**Preserve document structure before embedding it.**
+The system is therefore designed around three principles:
 
-The original PDF structure is used to identify meaningful policy sections rather than blindly splitting text at fixed character boundaries.
+1. **Preserve document structure before embedding** — Use the original PDF structure to create meaningful policy sections instead of arbitrary fixed-size chunks.
+2. **Combine multiple retrieval signals** — Use narrative embeddings, retrieval-oriented summary embeddings, and BM25 to capture both semantic and lexical relevance.
+3. **Move from broad retrieval to fine-grained relevance** — Retrieve relevant chunks first, search their individual policy sections for greater precision, and use CrossEncoder reranking to identify the passages that most directly answer the query.
 
-**Use multiple retrieval signals instead of trusting a single embedding.**
+---
 
-Narrative text embeddings, retrieval-oriented summary embeddings, and BM25 provide complementary semantic and lexical signals.
+## Terminology
 
-**Move from broad retrieval to fine-grained relevance.**
+Before going through the architecture, a few abbreviations used throughout the pipeline:
 
-The system first identifies relevant chunks for recall, then searches the individual policy sections inside those chunks for precision, and finally uses a CrossEncoder to determine which passages actually answer the query.
+* **NT — Narrative Text:** The complete text content of a chunk.
+* **SNT — Summary of Narrative Text:** An LLM-generated retrieval-oriented summary of the chunk.
+* **IE — Internal Embeddings:** Embeddings generated for the individual headings/sections contained within each chunk.
+
+> **Note:** `section_ids` and `heading_ids` refer to the same internal section identifiers and may be used interchangeably in parts of the implementation.
 
 ---
 
 # Architecture
 
 ```text
-                        Health Insurance PDF
+                        Aetna Policy Document (PDF)
                                 │
                   ┌─────────────┴─────────────┐
                   │                           │
@@ -122,61 +126,26 @@ BGE Query Embedding     │
 
 # 1. Structure-Aware PDF Parsing
 
-The first challenge is converting the original PDF into a representation suitable for retrieval without destroying its logical organization.
+The first challenge is converting the original PDF into a structured representation suitable for retrieval **without losing the logical organization of the policy**.
 
-The project uses a hybrid parsing strategy combining **PyMuPDF** and **Docling**.
+Initially, **PyMuPDF** worked well for detecting major policy headings using font and layout information, but reconstructing the complete document structure from it was difficult. **Docling** solved this by preserving structured content such as paragraphs, lists, tables, and page provenance, but its heading detection was not as reliable for this document. This led to a hybrid parsing approach, taking advantage of what each tool does best.
 
-### PyMuPDF
-
-PyMuPDF is used to identify structural anchors such as policy headings using PDF layout and font information.
-
-These headings establish the semantic boundaries of the document.
-
-### Docling
-
-Docling provides richer structured document extraction, preserving elements such as:
-
-- narrative text
-- lists
-- section headers
-- tables
-- page provenance
-
-The hybrid parser aligns the headings discovered from the PDF with Docling's structured representation.
-
-The result is a collection of structured policy sections where each major heading is associated with the content belonging to it.
-
-Conceptually:
-
-```text
-Heading
-   ↓
-Associated narrative text
-   ↓
-Lists / subheadings / tables
-   ↓
-Page provenance
-```
-
-This creates the fine-grained semantic units used later in the retrieval pipeline.
+The pipeline uses **PyMuPDF for heading detection and Docling for structured content extraction**. The detected headings are aligned with Docling's content to create structured policy sections containing the relevant text, substructures, and page provenance. These sections then serve as the fine-grained units for the later chunking and retrieval stages.
 
 ---
 
-# 2. Section-Aware Chunking
+# 2. Heading/Section-Aware Chunking
 
-Instead of applying fixed-size text splitting, the system groups **complete policy sections** into chunks.
+Instead of using fixed-size text splitting, the pipeline treats each **complete policy section as the atomic unit**. This prevents a policy heading from being separated from the coverage rules, exclusions, or conditions that belong to it.
 
-The current target chunk size is approximately:
+The chunking process follows these rules:
 
-```text
-MAX_CHUNK_TOKENS = 750
-```
+1. **Target chunk size: ~750 tokens** — Complete sections are grouped together while the chunk remains within this limit.
+2. **Preserve complete sections** — A policy section is never split just to satisfy the token limit.
+3. **Preserve chapter boundaries** — Sections from different chapters are never combined into the same chunk.
+4. **Allow oversized sections** — If a single section exceeds 750 tokens, it is kept intact as its own chunk.
 
-Sections are kept intact whenever possible.
-
-If several complete sections fit inside the token budget, they can be grouped into one chunk. If a single section already exceeds the token limit, it is preserved rather than being arbitrarily split.
-
-A chunk therefore contains metadata such as:
+Each resulting chunk preserves both the larger context and references to the individual sections contained inside it:
 
 ```json
 {
@@ -192,88 +161,66 @@ A chunk therefore contains metadata such as:
     "section_002",
     "section_003"
   ],
+  "start_pdf_page": 5,
+  "end_pdf_page": 6,
+  "token_count": 734,
   "content": "..."
 }
 ```
 
-This gives the retrieval system both larger contextual units and access to the individual sections contained inside them.
+This structure supports the later **multi-stage retrieval process**: the complete chunk can first be used for broad retrieval, while its `section_ids` provide a direct connection back to the smaller policy sections for more precise internal retrieval.
 
 ---
 
 # 3. Multiple Semantic Representations
 
-A central idea in this project is that one embedding representation may not capture every useful retrieval signal.
+A central idea behind the retrieval architecture is that **a single embedding representation may not capture every useful retrieval signal**. Each chunk is therefore represented at three different levels:
 
-Each chunk is therefore represented at multiple levels.
+1. **NT — Narrative Text Embedding:** Represents the complete original content of the chunk.
+2. **SNT — Summary Narrative Text Embedding:** Represents a condensed, retrieval-focused version of the chunk.
+3. **IE — Internal Embeddings:** Represent the individual policy sections contained inside each chunk.
 
-## Narrative Text Embeddings (NT)
+Together, **NT and SNT support broad chunk retrieval**, while **IE provides a second, more fine-grained retrieval layer within the selected chunks**.
 
-The complete chunk content is embedded using:
+## 3.1 Narrative Text Embeddings (NT)
+
+The **NT representation** captures the complete semantic context of a chunk. The original chunk content is embedded directly using `BAAI/bge-base-en-v1.5`, without summarization or modification.
+
+This representation is useful when the user's question is semantically similar to the language and context present in the original policy text.
 
 ```text
-BAAI/bge-base-en-v1.5
+Chunk → Original Narrative Text → BGE → NT Embedding
 ```
 
-These embeddings represent the full semantic content of the original chunk.
+## 3.2 Retrieval-Oriented Summary Embeddings (SNT)
+
+The original policy text can contain important rules surrounded by examples, explanations, cross-references, and other supporting language. To create a more concentrated retrieval representation, each **heading and its associated content** is summarized using an LLM.
+
+Unlike a general-purpose summary, the prompt is specifically designed for **retrieval**. It instructs the LLM to preserve information that could determine whether a policy provision matches a user's query, including:
+
+* Coverage and eligibility rules
+* Conditions and requirements
+* Numeric limits, deadlines, and monetary amounts
+* Exceptions and exclusions
+* Domain-specific terminology
+* Important qualifying language such as `only`, `unless`, `requires`, and `not covered`
+
+The LLM also extracts **retrieval-oriented key terms**. The summaries generated for all headings belonging to a chunk are then combined, and their key terms are appended to create one condensed representation of that chunk.
 
 ```text
-Chunk
-  ↓
-Original narrative text
-  ↓
-BGE embedding
-  ↓
-NT embedding
-```
-
----
-
-## Retrieval-Oriented Summary Embeddings (SNT)
-
-Long policy text may contain important concepts surrounded by examples, boilerplate, cross-references, and explanatory language.
-
-To create a more concentrated semantic representation, each heading and its associated content is sent to an LLM.
-
-The summary generation prompt is specifically designed for **retrieval**, rather than conversational summarization.
-
-It prioritizes:
-
-- coverage and eligibility rules
-- conditions
-- numeric limits
-- deadlines
-- monetary amounts
-- exceptions
-- exclusions
-- domain-specific terminology
-- qualifying language such as `only`, `unless`, `requires`, and `not covered`
-
-The LLM also extracts retrieval-oriented key terms.
-
-Heading-level summaries belonging to the same chunk are merged, and their key terms are appended to produce a single retrieval representation for the chunk.
-
-Example:
-
-```text
-<summary for heading 1>
-
-<summary for heading 2>
-
-<summary for heading 3>
+Summary: <heading 1 retrieval summary>
+Summary: <heading 2 retrieval summary>
+Summary: <heading 3 retrieval summary>
 
 Key terms: medical necessity, precertification,
 benefit limits, acupuncture, ...
 ```
 
-This representation is embedded using the same BGE model, producing the **Summary Narrative Text embedding (SNT)**.
+This representation is embedded using the same BGE model, producing the **Summary Narrative Text (SNT) embedding**. NT captures the original context, while SNT provides a more concentrated representation of the important retrieval signals within that context.
 
----
+## 3.3 Internal Embeddings (IE)
 
-## Internal Embeddings (IE)
-
-Chunks can contain several distinct policy headings.
-
-For example:
+A single chunk can contain multiple distinct policy sections:
 
 ```text
 Chunk 001
@@ -282,11 +229,7 @@ Chunk 001
 └── Acupuncture
 ```
 
-Retrieving the chunk identifies the correct neighborhood of the document, but the final answer may depend on only one of these sections.
-
-Therefore, every individual structured section also receives its own embedding.
-
-Example:
+Retrieving this chunk identifies the correct **region of the policy**, but the user's question may depend on only one of these sections. To support more precise retrieval, every individual structured section inside the chunks receives its own embedding.
 
 ```json
 {
@@ -298,331 +241,245 @@ Example:
 }
 ```
 
-These are referred to as **Internal Embeddings (IE)**.
-
-They allow the second retrieval layer to search inside the chunks selected by the first retrieval layer.
+These **Internal Embeddings (IE)** form the second retrieval layer. After the first stage identifies the most relevant chunks using NT, SNT, and lexical retrieval, IE allows the system to search specifically within those selected chunks and identify the individual policy sections most relevant to the query.
 
 ---
 
-# 4. Atlas Dense Chunk Retrieval
+# 4. First-Layer Chunk Retrieval
 
-When a query arrives, it is embedded using the same BGE model used during ingestion.
+The first retrieval layer combines **dense semantic retrieval and sparse lexical retrieval** to create a stronger relevance signal. Dense retrieval using **NT and SNT embeddings** captures conceptual similarity, while **BM25 sparse retrieval** captures exact terminology and keyword relevance. These complementary signals are combined to rank and select the **Top 10 most relevant chunks** for the next retrieval stage.
 
-Rather than loading the complete embedding matrices from local JSON files and scanning them with NumPy, the runtime pipeline performs vector retrieval through **MongoDB Atlas Vector Search**.
+## 4.1 Atlas NT Vector Retrieval
 
-Two vector representations are stored on each chunk:
+When a user query arrives, it is embedded using the same **BGE (`BAAI/bge-base-en-v1.5`) model** used during ingestion. The query embedding is searched against the `nt_embedding` field through the corresponding MongoDB Atlas Vector Search index.
 
 ```text
-nt_embedding
-snt_embedding
+Query Embedding → nt_vector_index → NT Ranking
 ```
 
-Two Atlas Vector Search indexes are used independently:
+This measures similarity between the query and the original narrative content of each chunk.
+
+## 4.2 Atlas SNT Vector Retrieval
+
+The same query embedding is independently searched against the `snt_embedding` field, which represents the retrieval-oriented summaries created earlier.
 
 ```text
-nt_vector_index
-snt_vector_index
+Query Embedding → snt_vector_index → SNT Ranking
 ```
 
-The query embedding is searched against both indexes, producing an NT ranking and an SNT ranking.
-
-The current dense score combines the two Atlas retrieval scores:
+The NT and SNT Atlas scores are then combined to calculate the chunk's dense retrieval score:
 
 ```text
-Dense Score =
-0.5 × NT score
-+
-0.5 × SNT score
-```
+Dense Score = (0.5 × NT Score) + (0.5 × SNT Score)
 
-Therefore:
-
-```text
 W_NT  = 0.5
 W_SNT = 0.5
 ```
 
-These weights are currently baseline values and have not yet been formally tuned.
+The current **50/50 weighting is a baseline** and can later be tuned based on retrieval evaluation results.
 
----
+## 4.3 BM25 Lexical Retrieval
 
-# 5. BM25 Lexical Retrieval
-
-Dense embeddings are useful for semantic similarity, but insurance policies frequently contain exact terminology that carries significant meaning.
-
-For example:
+Alongside dense retrieval, the pipeline performs **BM25 lexical retrieval** over the chunk headings and original content.
 
 ```text
-acupuncture
-precertification
-medical necessity
-durable medical equipment
-coordination of benefits
+BM25 Corpus = Chunk Headings + Original Chunk Content
 ```
 
-BM25 provides a complementary lexical retrieval signal.
+BM25 complements semantic retrieval by giving greater importance to exact and relatively rare policy terminology such as `acupuncture`, `precertification`, `medical necessity`, or `durable medical equipment`.
 
-The BM25 corpus currently consists of:
+The first layer therefore has two complementary rankings:
 
 ```text
-chunk headings + original chunk content
+Dense Ranking → Semantic / conceptual relevance
+BM25 Ranking  → Lexical / terminology relevance
 ```
 
-Chunk content is loaded from MongoDB Atlas when the retrieval pipeline initializes, and an in-memory BM25 index is constructed for lexical retrieval.
+## 4.4 Reciprocal Rank Fusion (RRF)
 
-This allows rare and highly specific terms to receive greater importance than common policy words such as `plan`, `health`, or `services`.
-
-The goal is not to replace semantic retrieval, but to combine:
-
-```text
-Atlas dense retrieval → conceptual similarity
-
-BM25 → lexical / terminology similarity
-```
-
----
-
-# 6. Reciprocal Rank Fusion
-
-Dense similarity scores and BM25 scores exist on different scales, so their raw scores are not directly added.
-
-Instead, each retrieval method independently ranks all chunks.
-
-The two rankings are then combined using **Reciprocal Rank Fusion (RRF)**:
+Dense and BM25 scores are produced using different scoring mechanisms and therefore are not directly comparable. Instead of adding their raw scores, the pipeline independently ranks the chunks from each retrieval method and combines those rankings using **Reciprocal Rank Fusion (RRF)**.
 
 ```text
 RRF(d) =
-1 / (k + DenseRank(d))
-+
-1 / (k + BM25Rank(d))
-```
+    1 / (RRF_K + DenseRank(d))
+  + 1 / (RRF_K + BM25Rank(d))
 
-The current value is:
-
-```text
 RRF_K = 60
 ```
 
-RRF rewards chunks that rank strongly across both semantic and lexical retrieval while still allowing a particularly strong result from either retrieval system to contribute.
+RRF rewards chunks that rank strongly across both semantic and lexical retrieval while still allowing a particularly strong result from either retrieval method to contribute.
 
-After fusion, the system keeps:
+After rank fusion, the **Top 10 chunks** are retained:
 
 ```text
-TOP_K = 10
+NT Vector Search ─┐
+                  ├─→ Dense Score ─┐
+SNT Vector Search ┘                │
+                                   ├─→ RRF → Top 10 Chunks
+BM25 Retrieval ────────────────────┘
 ```
 
-chunks.
-
-This forms the first retrieval layer.
+These Top 10 chunks form the output of the first retrieval layer and become the candidate search space for the fine-grained **Internal Embedding retrieval stage**.
 
 ---
 
-# 7. Fine-Grained Atlas Internal Retrieval
+# 5. Fine-Grained Atlas Internal Retrieval
 
-The top 10 chunks define the region of the policy most likely to contain the answer.
+The **Top 10 chunks from the first retrieval layer** narrow the search to the region of the policy most likely to contain the answer. However, because each chunk can contain multiple policy sections, a second retrieval layer is used to identify the **specific sections most relevant to the query**.
 
-The second retrieval layer then searches the `internal_embeddings` collection in MongoDB Atlas.
-
-The Atlas Vector Search query is constrained using the selected `chunk_id` values so that only internal sections belonging to the first-stage candidate chunks are considered.
+The query embedding is searched against the `internal_embeddings` collection using **MongoDB Atlas Vector Search**. The search is filtered by the `chunk_id` values selected in the first layer, ensuring that only internal sections belonging to those Top 10 chunks are considered.
 
 ```text
-Top 10 chunks
-       │
-       ▼
-Selected chunk IDs
-       │
-       ▼
+Top 10 Chunks
+      ↓
+Selected Chunk IDs
+      ↓
 Atlas IE Vector Search
-       │
-       ├── vector similarity
-       │
-       └── chunk_id filtering
-       │
-       ▼
-Ranked internal sections
-```
+      ↓
+Vector Similarity + Chunk ID Filtering
+      ↓
+Top 20 Internal Sections
 
-The current candidate limit is:
-
-```text
 IE_TOP_K = 20
 ```
 
-This creates a smaller pool of fine-grained policy passages for more expensive reranking.
+This reduces the broader chunk-level results into a smaller set of **fine-grained policy passages** that can be passed to the more expensive reranking stage.
 
-BM25 is currently **not used at the IE layer**. Initial experiments showed that Atlas IE vector retrieval successfully surfaced the correct fine-grained policy section, so lexical retrieval at this stage has intentionally been left as a future evaluation option.
+**BM25 is currently not used at the IE layer.** Initial experiments showed that IE vector retrieval was able to surface the correct fine-grained policy sections effectively, so adding lexical retrieval at this stage has been left as a future evaluation and optimization option.
 
 ---
 
-# 8. CrossEncoder Reranking
+# 6. CrossEncoder Reranking and Relevance Filtering
 
-Bi-encoder embeddings encode the query and passages separately.
+The previous retrieval stages use **bi-encoder embeddings**, where the query and policy passages are encoded separately. This makes retrieval efficient, but semantic similarity alone does not guarantee that a passage **directly answers the user's question**.
 
-This is efficient for retrieval, but semantic similarity alone does not guarantee that a passage actually answers the question.
-
-The candidate Internal Embeddings are therefore reranked using:
+To improve precision, the Top IE candidates are reranked using:
 
 ```text
 cross-encoder/ms-marco-MiniLM-L6-v2
 ```
 
-For each candidate, the CrossEncoder receives:
+For each candidate, the CrossEncoder evaluates the **query and IE passage together**:
 
 ```text
-(query, IE passage)
+(Query, IE Passage) → CrossEncoder → Relevance Score
 ```
 
-as a pair.
+Because the query and passage are processed jointly, the CrossEncoder can better distinguish between content that is simply **related to the query** and content that **directly provides the policy information needed to answer it**.
 
-Unlike the embedding retrieval stage, the CrossEncoder evaluates the query and passage jointly.
-
-This allows it to distinguish between:
-
-```text
-"this passage discusses a related medical concept"
-```
-
-and:
-
-```text
-"this passage directly addresses the user's question"
-```
-
-The reranked passages are reduced to at most:
+After reranking, at most the **Top 5 passages** are retained:
 
 ```text
 CROSS_ENCODER_TOP_K = 5
 ```
 
----
+## Relevance Threshold
 
-# 9. Relevance Threshold
-
-After CrossEncoder reranking, low-relevance passages are removed before reaching the answer-generation LLM.
-
-The current experimental threshold is:
+A final relevance threshold is applied to prevent weakly related passages from reaching the answer-generation LLM.
 
 ```text
 CROSS_ENCODER_THRESHOLD = -5.0
 ```
 
-This value is currently a **heuristic baseline**, not a calibrated production threshold.
+If **none of the retrieved passages pass the threshold**, the pipeline does not allow the final LLM to infer an answer from weak evidence. Instead, it returns that the **available policy evidence is insufficient to determine the answer**.
 
-A future evaluation set will be used to study score distributions across relevant and irrelevant passages and determine an appropriate threshold.
-
-If no retrieved passages survive the threshold, the system does not ask the final LLM to infer an answer from weak evidence.
-
-Instead, it reports that the retrieved evidence is insufficient.
+This creates an additional grounding layer between retrieval and generation, reducing the chance that the LLM produces an answer when the retrieved policy does not provide sufficient supporting evidence.
 
 ---
 
-# 10. Lost-in-the-Middle Mitigation
+# 7. Lost-in-the-Middle Mitigation
 
-Long LLM contexts can make information positioned in the middle less influential than information near the beginning or end.
+Even after identifying the most relevant passages, their **position inside the final LLM context can influence how effectively they are used**. In longer contexts, information placed in the middle may receive less attention than information near the beginning or end.
 
-After reranking, the relevance order is preserved conceptually but passages are rearranged before being inserted into the final prompt.
-
-For example:
+To reduce this effect, the pipeline rearranges the CrossEncoder-ranked passages before inserting them into the final prompt. The goal is to place the **highest-relevance passages near the boundaries of the context**.
 
 ```text
-CrossEncoder relevance:
+CrossEncoder Ranking:
+1 → 2 → 3 → 4 → 5
 
-1, 2, 3, 4, 5
+Final LLM Context:
+1 → 3 → 5 → 4 → 2
 ```
 
-becomes:
-
-```text
-LLM context:
-
-1, 3, 5, 4, 2
-```
-
-This places the two strongest passages at opposite boundaries of the context.
-
-The CrossEncoder ranking itself is not modified; only the final context presentation order changes.
+This places the **two strongest passages at opposite ends of the context**, while the remaining passages are distributed between them. The original CrossEncoder relevance scores and rankings are not changed; only the **order in which the passages are presented to the final LLM** is modified.
 
 ---
 
-# 11. Grounded Answer Generation
+# 8. Grounded Answer Generation
 
-The final evidence is passed to:
+The final passages that survive retrieval, CrossEncoder reranking, relevance filtering, and context ordering are passed to **`gpt-5-mini` through LangChain** for answer generation.
 
-```text
-gpt-5-mini
-```
+The final prompt is designed specifically for **grounded policy question answering**. The model is instructed to answer only from the retrieved evidence and preserve important policy distinctions such as **covered, not covered, excluded, conditionally covered, limited, required, and subject to approval**.
 
-through LangChain.
+It must also preserve numeric limits, exceptions, requirements, time limits, qualifying language, and any ambiguity present in the original policy.
 
-The answer-generation prompt explicitly instructs the model to answer **only from the retrieved policy passages**.
+If the retrieved passages do not contain sufficient evidence, the model is instructed to **state that the available policy information is insufficient rather than filling the gap with outside knowledge**.
 
-The grounding rules require the model to preserve distinctions such as:
+## End-to-End Example
 
-- covered
-- not covered
-- excluded
-- conditionally covered
-- limited
-- required
-- subject to approval
-
-The model is also instructed to preserve:
-
-- numeric limits
-- exceptions
-- requirements
-- time limits
-- qualifying language
-- ambiguity present in the original policy
-
-If the available passages do not provide enough information, the model must state that the evidence is insufficient rather than filling the gap with outside knowledge.
-
----
-
-# Example
-
-Query:
+For the query:
 
 ```text
 Does my health plan cover acupuncture for back pain?
 ```
 
-After MongoDB Atlas fine-grained retrieval and CrossEncoder reranking, the surviving passage was:
+the first retrieval layer identifies the most relevant policy chunks. **Internal Embedding retrieval** then searches within those chunks and isolates the specific `Acupuncture` provision.
+
+After CrossEncoder reranking and relevance filtering, the passage survives as supporting evidence:
 
 ```text
 001_ie_003 | Acupuncture
 Atlas score: 0.8615
-CrossEncoder: -1.9394
+CrossEncoder score: -1.9394
 ```
 
-The Acupuncture provision passed the relevance threshold and was supplied to the final LLM.
+The surviving policy passage states that acupuncture is covered when provided by a physician as anesthesia in connection with a covered surgical procedure, while acupuncture for purposes other than anesthesia is not covered.
 
-Example answer from the Atlas-backed pipeline:
+The grounded LLM can therefore generate an answer such as:
+
+> **No.** The policy's *Acupuncture* section states that acupuncture is covered only when provided by a physician as a form of anesthesia in connection with a covered surgical procedure. Acupuncture for other purposes is listed as not covered.
+
+The complete retrieval process is:
 
 ```text
-No. The policy's "Acupuncture" section says acupuncture is covered
-only when provided by a physician as a form of anesthesia in connection
-with a covered surgical procedure. The policy explicitly lists
-"Acupuncture, other than for anesthesia" as not covered.
+User Query
+    ↓
+NT + SNT Dense Retrieval + BM25
+    ↓
+RRF → Top 10 Chunks
+    ↓
+IE Retrieval → Top Internal Sections
+    ↓
+CrossEncoder + Relevance Threshold
+    ↓
+Lost-in-the-Middle Ordering
+    ↓
+Grounded LLM
+    ↓
+Evidence-Based Answer
 ```
 
-This example illustrates the purpose of the multi-stage architecture.
+The architecture progressively moves from **broad chunk-level retrieval to exact policy-section retrieval**, ensuring that the final LLM receives a small set of highly relevant passages rather than the entire policy document.
 
-The first retrieval layer finds the relevant region of the policy. Atlas Internal Embedding retrieval isolates the exact provision. The CrossEncoder removes weaker semantic matches, and the final LLM answers from the surviving policy evidence.
+---
+
+# ⚠️ WHY THIS COMPLEX ARCHITECTURE FOR JUST 38 CHUNKS?
+
+The current policy document produces only **38 chunks**, so a much simpler retrieval approach could likely work for this dataset alone. However, the goal is not to optimize retrieval specifically for 38 chunks, but to design and evaluate an architecture that can scale to **larger policies, multiple documents, and eventually multiple insurance plans**.
+
+More importantly, the complexity addresses **retrieval precision rather than only dataset size**. Even with a small number of chunks, each chunk can contain multiple policy provisions, and semantic similarity alone may retrieve related content without identifying the exact rule, exclusion, or condition needed to answer the question.
+
+The layered architecture therefore serves as a controlled baseline for evaluating **which retrieval components actually improve accuracy and which can later be simplified or removed based on evaluation results**.
 
 ---
 
 # MongoDB Atlas Storage and Vector Retrieval
 
-The project initially used local JSON artifacts throughout development.
+The project initially used local JSON artifacts throughout development. This was intentional because intermediate JSON representations made it easy to inspect heading extraction, structured sections, chunk boundaries, summaries, identifiers, embeddings, and retrieval behavior while the architecture was evolving.
 
-This was intentional: intermediate JSON representations made it easy to inspect heading extraction, structured sections, chunk boundaries, summaries, identifiers, embeddings, and retrieval behavior while the architecture was evolving.
+Once the retrieval pipeline stabilized, the retrieval-ready representations were migrated to **MongoDB Atlas**. The runtime RAG pipeline now uses Atlas rather than loading complete embedding matrices from local JSON files.
 
-Once the retrieval pipeline stabilized, the retrieval-ready representations were migrated to **MongoDB Atlas**.
-
-The runtime RAG pipeline now uses Atlas rather than loading embedding matrices from the local JSON files.
-
-The `chunks` collection stores chunk-level retrieval information conceptually structured as:
+The `chunks` collection stores chunk-level retrieval information:
 
 ```json
 {
@@ -660,29 +517,27 @@ SNT → snt_vector_index
 IE  → ie_vector_index
 ```
 
-At query time, NT and SNT vector retrieval execute directly in Atlas.
+At query time, NT and SNT vector retrieval execute directly in Atlas. The resulting chunk rankings are combined with the local BM25 ranking using **Reciprocal Rank Fusion**. The selected chunk IDs are then used as metadata constraints for the second Atlas Vector Search over the internal-section embeddings.
 
-The resulting chunk rankings are combined with the local BM25 ranking using Reciprocal Rank Fusion. The top chunk IDs are then used as metadata constraints for a second Atlas Vector Search over the internal-section embeddings.
-
-This separates the architecture into two distinct workflows.
-
-The document-processing side:
+This creates a clear separation between document ingestion and query-time retrieval.
 
 ```text
-Document Processing / Ingestion
-        ↓
-Structured representations
-        ↓
+DOCUMENT PROCESSING / INGESTION
+
+Document
+    ↓
+Structured Representations
+    ↓
 Embeddings
-        ↓
+    ↓
 MongoDB Atlas
-        ↓
-Persistent retrieval indexes
+    ↓
+Persistent Vector Search Indexes
 ```
 
-And the query side:
-
 ```text
+QUERY PIPELINE
+
 User Query
     ↓
 Query Embedding
@@ -723,34 +578,36 @@ Local JSON artifacts remain useful as transparent development checkpoints and re
 │       └── policy_internal_embeddings.json
 │
 ├── src/
-│   ├── parsing/
-│   │   ├── pymupdf_parser.py
-│   │   ├── docling_parser.py
-│   │   └── hybrid_parser.py
-│   │
 │   ├── chunking/
 │   │   └── create_chunks.py
+│   │
+│   ├── database/
+│   │   ├── create_vector_indexes.py
+│   │   ├── migrate_to_mongodb.py
+│   │   └── mongodb.py
+│   │
+│   ├── embeddings/
+│   │   ├── chunk_embeddings.py
+│   │   ├── internal_embeddings.py
+│   │   └── summary_embeddings.py
+│   │
+│   ├── parsing/
+│   │   ├── docling_parser.py
+│   │   ├── hybrid_parser.py
+│   │   └── pymupdf_parser.py
+│   │
+│   ├── retrieval/
+│   │   ├── atlas_hybrid_retrieval.py
+│   │   ├── bm25_retrieval.py
+│   │   ├── cross_encoding.py
+│   │   ├── dense_retrieval.py
+│   │   └── hybrid_retrieval.py
 │   │
 │   ├── summary/
 │   │   └── create_summaries.py
 │   │
-│   ├── embeddings/
-│   │   ├── chunk_embeddings.py
-│   │   ├── summary_embeddings.py
-│   │   └── internal_embeddings.py
-│   │
-│   ├── retrieval/
-│   │   ├── dense_retrieval.py
-│   │   ├── bm25_retrieval.py
-│   │   ├── hybrid_retrieval.py
-│   │   ├── atlas_hybrid_retrieval.py
-│   │   ├── cross_encoding.py
-│   │   └── rag_pipeline.py
-│   │
-│   └── database/
-│       ├── mongodb.py
-│       ├── migrate_to_mongodb.py
-│       └── create_vector_indexes.py
+│   ├── config.py
+│   └── main.py
 │
 ├── requirements.txt
 ├── .env
@@ -761,25 +618,26 @@ Local JSON artifacts remain useful as transparent development checkpoints and re
 
 # Pipeline Components
 
-| Component | Purpose |
-|---|---|
-| `pymupdf_parser.py` | Extract structural heading information from the PDF |
-| `docling_parser.py` | Parse the PDF into a richer structured representation |
-| `hybrid_parser.py` | Align heading anchors with Docling content and create structured sections |
-| `create_chunks.py` | Group complete policy sections into token-aware chunks |
-| `create_summaries.py` | Generate retrieval-oriented heading summaries and key terms |
-| `chunk_embeddings.py` | Generate NT embeddings |
-| `summary_embeddings.py` | Generate SNT embeddings |
-| `internal_embeddings.py` | Generate fine-grained IE embeddings |
-| `dense_retrieval.py` | Evaluate NT/SNT dense retrieval during development |
-| `bm25_retrieval.py` | Evaluate lexical retrieval |
-| `hybrid_retrieval.py` | Original local retrieval implementation used during development and retrieval experiments |
+| Component                   | Purpose                                                                                                              |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `pymupdf_parser.py`         | Extract structural heading information from the PDF                                                                  |
+| `docling_parser.py`         | Parse the PDF into a richer structured representation                                                                |
+| `hybrid_parser.py`          | Align heading anchors with Docling content and create structured sections                                            |
+| `create_chunks.py`          | Group complete policy sections into token-aware chunks                                                               |
+| `create_summaries.py`       | Generate retrieval-oriented heading summaries and key terms                                                          |
+| `chunk_embeddings.py`       | Generate NT embeddings                                                                                               |
+| `summary_embeddings.py`     | Generate SNT embeddings                                                                                              |
+| `internal_embeddings.py`    | Generate fine-grained IE embeddings                                                                                  |
+| `dense_retrieval.py`        | Evaluate NT/SNT dense retrieval during development                                                                   |
+| `bm25_retrieval.py`         | Evaluate lexical retrieval                                                                                           |
+| `hybrid_retrieval.py`       | Original local retrieval implementation used during development and retrieval experiments                            |
 | `atlas_hybrid_retrieval.py` | Run NT/SNT Atlas Vector Search, combine dense retrieval with BM25 through RRF, and perform filtered IE Vector Search |
-| `cross_encoding.py` | Rerank Atlas IE candidates using a CrossEncoder and apply relevance filtering |
-| `rag_pipeline.py` | Run the complete Atlas-backed retrieval, reranking, context construction, and grounded answer-generation workflow |
-| `mongodb.py` | Manage MongoDB Atlas connections and reusable vector-search operations |
-| `migrate_to_mongodb.py` | Migrate processed chunk and internal-section artifacts into MongoDB Atlas |
-| `create_vector_indexes.py` | Create the Atlas Vector Search indexes used by NT, SNT, and IE retrieval |
+| `cross_encoding.py`         | Rerank Atlas IE candidates using a CrossEncoder and apply relevance filtering                                        |
+| `mongodb.py`                | Manage MongoDB Atlas connections and reusable vector-search operations                                               |
+| `migrate_to_mongodb.py`     | Migrate processed chunk and internal-section artifacts into MongoDB Atlas                                            |
+| `create_vector_indexes.py`  | Create the Atlas Vector Search indexes used by NT, SNT, and IE retrieval                                             |
+| `config.py`                 | Store shared project configuration and retrieval parameters                                                          |
+| `main.py`                   | Run the complete Atlas-backed retrieval, reranking, context construction, and grounded answer-generation workflow    |
 
 ---
 
@@ -831,14 +689,12 @@ pymongo
 Once the document representations have been generated, migrated to MongoDB Atlas, and the vector indexes have been created, run:
 
 ```bash
-python -m src.retrieval.rag_pipeline
+python -m src.main
 ```
 
 The application connects to MongoDB Atlas, loads the chunk corpus required for BM25, initializes the embedding model and CrossEncoder, and loads the grounded answer-generation model.
 
-Document embeddings are **not regenerated** when the query pipeline starts.
-
-The precomputed NT, SNT, and IE representations are retrieved through the Atlas indexes.
+Document embeddings are **not regenerated** when the query pipeline starts. The precomputed NT, SNT, and IE representations are retrieved through the Atlas indexes.
 
 The application then waits for a query:
 
@@ -858,7 +714,7 @@ The runtime pipeline executes:
 ```text
 Query
   ↓
-BGE query embedding
+BGE Query Embedding
   ↓
 Atlas NT Vector Search
   +
@@ -868,191 +724,88 @@ BM25
   ↓
 RRF
   ↓
-Top 10 chunks
+Top 10 Chunks
   ↓
 Atlas IE Vector Search
   ↓
 CrossEncoder
   ↓
-Threshold
+Relevance Threshold
   ↓
-Lost-in-the-middle ordering
+Lost-in-the-Middle Ordering
   ↓
 Grounded LLM
   ↓
 Answer
 ```
-
----
-
-# Current Retrieval Configuration
-
-The current configuration represents the initial working baseline:
-
-```text
-Embedding model:
-BAAI/bge-base-en-v1.5
-
-NT weight:
-0.5
-
-SNT weight:
-0.5
-
-RRF k:
-60
-
-Chunk retrieval K:
-10
-
-IE candidate K:
-20
-
-CrossEncoder:
-cross-encoder/ms-marco-MiniLM-L6-v2
-
-CrossEncoder top K:
-5
-
-CrossEncoder threshold:
--5.0
-
-Answer model:
-gpt-5-mini
-```
-
-These values should not yet be interpreted as optimized hyperparameters.
-
-They establish a reproducible baseline from which systematic evaluation can begin.
 
 ---
 
 # Why Multiple Retrieval Layers?
 
-Each stage solves a different failure mode.
+Each retrieval stage addresses a different potential failure mode:
 
 ```text
-NT embeddings
-    → preserve the meaning of the complete original chunk
+NT Embeddings
+    → Preserve the meaning of the complete original chunk
 
-SNT embeddings
-    → provide a compressed retrieval-oriented semantic signal
+SNT Embeddings
+    → Provide a compressed retrieval-oriented semantic signal
 
 BM25
-    → preserve exact terminology and lexical matches
+    → Preserve exact terminology and lexical matches
 
 RRF
-    → combine semantic and lexical rankings without mixing
+    → Combine semantic and lexical rankings without mixing
       incompatible raw score scales
 
-IE embeddings
-    → move from broad chunks to individual policy provisions
+IE Embeddings
+    → Move from broad chunks to individual policy provisions
 
 CrossEncoder
-    → determine query-passage relevance jointly
+    → Determine query-passage relevance jointly
 
-Threshold
-    → prevent weak passages from reaching generation
+Relevance Threshold
+    → Prevent weak passages from reaching generation
 
 Grounded LLM
-    → convert retrieved policy evidence into a clear answer
+    → Convert retrieved policy evidence into a clear answer
 ```
 
-The goal is therefore not to make one retrieval mechanism perfect.
-
-The goal is to let several specialized stages progressively reduce the search space:
+The goal is therefore not to make one retrieval mechanism perfect. Instead, several specialized stages progressively reduce the search space from the complete policy to the evidence needed for an answer.
 
 ```text
-Entire policy
+Entire Policy
       ↓
-Relevant chunks
+Relevant Chunks
       ↓
-Relevant sections
+Relevant Sections
       ↓
-Query-relevant passages
+Query-Relevant Passages
       ↓
-Grounded evidence
+Grounded Evidence
       ↓
 Answer
-```
-
----
-
-# Planned End-to-End Ingestion Orchestration
-
-The current processing stages are implemented independently so they can be inspected and tested individually.
-
-The next engineering step is to combine them into a reproducible ingestion pipeline:
-
-```text
-PDF
- ↓
-PyMuPDF heading extraction
- ↓
-Docling parsing
- ↓
-Hybrid structural alignment
- ↓
-Structured sections
- ↓
-Section-aware chunking
- ↓
-Retrieval-oriented summaries
- ↓
-NT embeddings
- ↓
-SNT embeddings
- ↓
-IE embeddings
- ↓
-MongoDB Atlas
- ↓
-Atlas Vector Search indexes
-```
-
-This ingestion process only needs to run when a document is added, changed, or intentionally re-indexed.
-
-Normal user queries use the already-created retrieval representations and Atlas indexes rather than regenerating document embeddings.
-
-This creates a clear separation between:
-
-```text
-INGESTION PIPELINE
-Document → Processing → Embeddings → Atlas
-```
-
-and:
-
-```text
-QUERY PIPELINE
-Query → Retrieval → Reranking → LLM → Answer
 ```
 
 ---
 
 # Evaluation and Future Work
 
-The current architecture is a working Atlas-backed baseline.
-
-The next phase will focus on systematic evaluation and reproducibility rather than adding retrieval components without evidence that they are needed.
+The current architecture provides a complete working **MongoDB Atlas-backed RAG pipeline**. The next phase will focus on systematically evaluating and tuning the existing retrieval stages rather than adding additional components without evidence that they improve performance.
 
 Planned work includes:
 
-- centralized project configuration
-- end-to-end ingestion orchestration
-- representative policy QA evaluation dataset
-- Recall@K evaluation for chunk retrieval
-- IE retrieval evaluation
-- CrossEncoder threshold calibration
-- NT/SNT weight tuning
-- RRF parameter evaluation
-- testing alternative embedding models
-- evaluating whether BM25 provides additional value at the IE layer
-- retrieval and answer-quality logging
-- grounded-answer evaluation
-- handling larger documents and multiple policy documents
+* Build a representative **policy question-answer evaluation dataset**
+* Evaluate **Recall@K** for chunk and IE retrieval
+* Tune **NT/SNT weights**, `RRF_K`, and the **CrossEncoder relevance threshold**
+* Evaluate alternative embedding models and whether **BM25 at the IE layer** provides additional value
+* Add retrieval, grounding, and answer-quality evaluation
+* Build a complete **end-to-end ingestion pipeline** for processing and indexing new policy documents
+* Extend the architecture to support **larger and multiple policy documents**
+* Integrate the **Summary of Benefits and Coverage (SBC)** into the broader project as a separate component focused on benefits, cost-sharing, and plan-level cost information
 
-In particular, the current values:
+The current retrieval parameters should therefore be considered **baseline values** until validated against the evaluation dataset:
 
 ```text
 W_NT = 0.5
@@ -1061,7 +814,7 @@ RRF_K = 60
 CROSS_ENCODER_THRESHOLD = -5.0
 ```
 
-should be treated as baseline values until validated against a representative evaluation set.
+The longer-term goal is to combine the detailed policy retrieval provided by the current RAG architecture with **SBC-based benefit and cost information**, bringing both sides of the original health-insurance problem into a single system.
 
 ---
 
@@ -1069,78 +822,41 @@ should be treated as baseline values until validated against a representative ev
 
 **Document Processing**
 
-- PyMuPDF
-- Docling
+* PyMuPDF
+* Docling
 
 **Chunking**
 
-- tiktoken
-- section-aware custom chunking
+* tiktoken
+* section-aware custom chunking
 
 **Embeddings**
 
-- Sentence Transformers
-- BAAI/bge-base-en-v1.5
+* Sentence Transformers
+* BAAI/bge-base-en-v1.5
 
 **Sparse Retrieval**
 
-- BM25 / `rank_bm25`
+* BM25 / `rank_bm25`
 
 **Rank Fusion**
 
-- Reciprocal Rank Fusion (RRF)
+* Reciprocal Rank Fusion (RRF)
 
 **Storage / Vector Retrieval**
 
-- MongoDB Atlas
-- MongoDB Atlas Vector Search
-- PyMongo
+* MongoDB Atlas
+* MongoDB Atlas Vector Search
+* PyMongo
 
 **Reranking**
 
-- `cross-encoder/ms-marco-MiniLM-L6-v2`
+* `cross-encoder/ms-marco-MiniLM-L6-v2`
 
 **LLM Orchestration**
 
-- LangChain
+* LangChain
 
 **Summary & Answer Generation**
 
-- OpenAI models
-
----
-
-# Status
-
-The current version implements the complete MongoDB Atlas-backed RAG workflow:
-
-```text
-✓ Hybrid PDF parsing
-✓ Structure-aware section extraction
-✓ Section-aware chunking
-✓ Narrative text embeddings
-✓ Retrieval-oriented LLM summaries
-✓ Summary embeddings
-✓ Internal section embeddings
-✓ MongoDB Atlas persistence
-✓ Atlas NT Vector Search
-✓ Atlas SNT Vector Search
-✓ BM25 lexical retrieval
-✓ Reciprocal Rank Fusion
-✓ Metadata-constrained Atlas IE Vector Search
-✓ CrossEncoder reranking
-✓ Relevance thresholding
-✓ Lost-in-the-middle mitigation
-✓ Grounded LLM answer generation
-✓ End-to-end Atlas-backed interactive query pipeline
-
-Next:
-→ Centralized project configuration
-→ End-to-end ingestion orchestration
-→ Evaluation dataset
-→ Retrieval evaluation and hyperparameter tuning
-```
-
-The project has progressed from a local experimental RAG pipeline into a layered retrieval architecture backed by MongoDB Atlas.
-
-Local processing stages create structured and semantic representations of the policy, while the runtime query path uses Atlas Vector Search, lexical retrieval, rank fusion, fine-grained section retrieval, neural reranking, and grounded generation to progressively narrow the document to the evidence required for an answer.
+* OpenAI models

@@ -1,20 +1,19 @@
 import json
 import re
-from pathlib import Path
 
 from rank_bm25 import BM25Okapi
 
-
-CHUNKS_PATH = Path("data/processed/policy_chunks.json")
-
-TOP_K = 10
+from src.config import (
+    POLICY_CHUNKS_PATH,
+    CHUNK_TOP_K,
+)
 
 
 def load_chunks() -> list[dict]:
-    if not CHUNKS_PATH.exists():
-        raise FileNotFoundError(f"Could not find: {CHUNKS_PATH.resolve()}")
+    if not POLICY_CHUNKS_PATH.exists():
+        raise FileNotFoundError(f"Could not find: {POLICY_CHUNKS_PATH.resolve()}")
 
-    data = json.loads(CHUNKS_PATH.read_text(encoding="utf-8"))
+    data = json.loads(POLICY_CHUNKS_PATH.read_text(encoding="utf-8"))
     return data["chunks"]
 
 
@@ -36,8 +35,6 @@ def build_bm25_documents(
         chunk_id = f"{index:03d}"
 
         headings_text = " ".join(chunk["headings"])
-
-        # BM25 sees both heading names and original content.
         document_text = f"{headings_text}\n{chunk['content']}"
 
         chunk_ids.append(chunk_id)
@@ -50,7 +47,7 @@ def retrieve_bm25(
     query: str,
     bm25: BM25Okapi,
     chunk_ids: list[str],
-    top_k: int = TOP_K,
+    top_k: int = CHUNK_TOP_K,
 ) -> list[dict]:
     query_tokens = tokenize(query)
     scores = bm25.get_scores(query_tokens)
@@ -66,6 +63,7 @@ def retrieve_bm25(
         )
 
     results.sort(key=lambda x: x["bm25_score"], reverse=True)
+
     return results[:top_k]
 
 
@@ -90,7 +88,7 @@ def main():
             query=query,
             bm25=bm25,
             chunk_ids=chunk_ids,
-            top_k=TOP_K,
+            top_k=CHUNK_TOP_K,
         )
 
         print("\nBM25 results:\n")

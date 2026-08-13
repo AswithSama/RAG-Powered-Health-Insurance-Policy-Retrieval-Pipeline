@@ -4,24 +4,26 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
+from src.config import (
+    EMBEDDING_MODEL,
+    ANSWER_MODEL,
+    CROSS_ENCODER_MODEL,
+    CHUNKS_COLLECTION,
+    INTERNAL_EMBEDDINGS_COLLECTION,
+)
+
 from src.database.mongodb import get_database
 
 from src.retrieval.atlas_hybrid_retrieval import (
-    MODEL_NAME,
     load_chunks_from_mongodb,
     build_bm25,
     atlas_hybrid_retrieve,
 )
 
-from src.retrieval.cross_encoding import (
-    CROSS_ENCODER_MODEL,
-    rerank_with_cross_encoder,
-)
+from src.retrieval.cross_encoding import rerank_with_cross_encoder
 
 
 load_dotenv()
-
-ANSWER_MODEL = "gpt-5-mini"
 
 
 SYSTEM_PROMPT = """
@@ -131,36 +133,23 @@ def build_context(results: list[dict]) -> str:
 
 
 def main():
-
-    # --------------------------------------------------
     # MongoDB Atlas
-    # --------------------------------------------------
-
     db = get_database()
 
-    chunks_collection = db["chunks"]
-    ie_collection = db["internal_embeddings"]
+    chunks_collection = db[CHUNKS_COLLECTION]
+    ie_collection = db[INTERNAL_EMBEDDINGS_COLLECTION]
 
-    # --------------------------------------------------
-    # Load chunk text from MongoDB for BM25
-    # --------------------------------------------------
-
+    # Load chunk text for BM25
     chunks = load_chunks_from_mongodb(chunks_collection)
 
     print(f"Loaded {len(chunks)} chunks from MongoDB Atlas.")
 
-    # --------------------------------------------------
     # Build BM25
-    # --------------------------------------------------
-
     bm25, bm25_chunk_ids = build_bm25(chunks)
 
-    # --------------------------------------------------
-    # Load models once
-    # --------------------------------------------------
-
-    print(f"Loading embedding model: {MODEL_NAME}")
-    embedding_model = SentenceTransformer(MODEL_NAME)
+    # Load models
+    print(f"Loading embedding model: {EMBEDDING_MODEL}")
+    embedding_model = SentenceTransformer(EMBEDDING_MODEL)
 
     print(f"Loading CrossEncoder: {CROSS_ENCODER_MODEL}")
     cross_encoder = CrossEncoder(CROSS_ENCODER_MODEL)
@@ -174,27 +163,14 @@ def main():
 
     answer_chain = ANSWER_PROMPT | answer_llm
 
-    # --------------------------------------------------
     # Interactive RAG
-    # --------------------------------------------------
-
     while True:
         query = input("\nEnter query (or 'exit'): ").strip()
 
         if query.lower() == "exit":
             break
 
-        # --------------------------------------------------
-        # 1. Atlas hybrid retrieval
-        #
-        # Atlas NT vector search
-        # + Atlas SNT vector search
-        # + BM25
-        # + RRF
-        # -> top 10 chunks
-        # -> Atlas IE vector search
-        # --------------------------------------------------
-
+        # Atlas hybrid retrieval
         ie_results = atlas_hybrid_retrieve(
             query=query,
             model=embedding_model,
@@ -204,42 +180,26 @@ def main():
             bm25_chunk_ids=bm25_chunk_ids,
         )
 
-        # --------------------------------------------------
-        # 2. CrossEncoder reranking + threshold
-        # --------------------------------------------------
-
+        # CrossEncoder reranking
         reranked_results = rerank_with_cross_encoder(
             query=query,
             ie_results=ie_results,
             cross_encoder=cross_encoder,
         )
 
-        # --------------------------------------------------
-        # Guardrail:
-        # no sufficiently relevant evidence
-        # --------------------------------------------------
-
+        # Guardrail
         if not reranked_results:
             print("\nNo retrieved policy passages passed the relevance threshold.")
             print("The available evidence is insufficient to answer this question reliably.")
             continue
 
-        # --------------------------------------------------
-        # 3. Lost-in-the-middle mitigation
-        # --------------------------------------------------
-
+        # Lost-in-the-middle ordering
         ordered_results = order_for_lost_in_middle(reranked_results)
 
-        # --------------------------------------------------
-        # 4. Construct LLM context
-        # --------------------------------------------------
-
+        # Build context
         context = build_context(ordered_results)
 
-        # --------------------------------------------------
-        # 5. Final grounded answer
-        # --------------------------------------------------
-
+        # Final grounded answer
         response = answer_chain.invoke(
             {
                 "query": query,
@@ -247,19 +207,12 @@ def main():
             }
         )
 
-        # --------------------------------------------------
         # Output
-        # --------------------------------------------------
-
         print("\n" + "=" * 80)
         print("FINAL ANSWER")
         print("=" * 80)
 
         print(response.content)
-
-        # --------------------------------------------------
-        # Temporary debugging information
-        # --------------------------------------------------
 
         print("\n" + "-" * 80)
         print("PASSAGES USED")
