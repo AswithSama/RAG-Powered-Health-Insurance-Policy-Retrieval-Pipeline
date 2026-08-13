@@ -10,11 +10,11 @@ During this research, I found that the information needed to understand health i
 
 1. **Explanation of Benefits (EOB)** — Explains how a specific patient's healthcare claim was processed, including the amount billed, what the insurance plan covered, and what the patient may owe.
 2. **Summary of Benefits and Coverage (SBC)** — Provides a short, standardized overview of a health plan's major benefits, coverage levels, cost-sharing information, and common exclusions.
-3. **Detailed Policy/Coverage Document** — Defines the plan's detailed coverage rules, including covered services, exclusions, limitations, medical-necessity requirements, precertification requirements, exceptions, and other policy conditions.
+3. **Certificate of Coverage (COC)** — Defines the plan's detailed coverage rules, including covered services, exclusions, limitations, medical-necessity requirements, precertification requirements, exceptions, and other policy conditions.
 
 ## Problem Statement
 
-The project focuses on building a system where a user can ask a natural-language question about their health insurance, potentially using information from their **EOB**, and the system retrieves the relevant provisions from the detailed policy document to explain how the policy applies to their question.
+The project focuses on building a system where a user can ask a natural-language question about their health insurance, potentially using information from their **EOB**, and the system retrieves the relevant provisions from the detailed policy document *(COC)* to explain how the policy applies to their question.
 
 Rather than simply generating an answer, the goal is to return the **relevant policy information along with its source section or page as supporting evidence**. This helps users better understand whether a service is covered, excluded, limited, or subject to specific conditions while also allowing them to verify where the answer came from in the actual policy document.
 
@@ -22,7 +22,7 @@ The **SBC was excluded from the primary RAG pipeline** because it is a relativel
 
 ## Data Source
 
-The primary data source is the **Aetna Choice POS II High Deductible Health Plan booklet**, which contains the detailed coverage rules, exclusions, limitations, and policy conditions used by the RAG pipeline.
+The primary data source is the **Aetna Choice POS II High Deductible Health Plan booklet-prepared for Truist Financial Corporation.**, which contains the detailed coverage rules, exclusions, limitations, and policy conditions used by the RAG pipeline.
 
 ---
 
@@ -53,7 +53,7 @@ Before going through the architecture, a few abbreviations used throughout the p
 # Architecture
 
 ```text
-                        Aetna Policy Document (PDF)
+                        Aetna COC Document (PDF)
                                 │
                   ┌─────────────┴─────────────┐
                   │                           │
